@@ -69,7 +69,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
   const [gatewayConfigured, setGatewayConfigured] = useState<boolean | null>(null);
 
-  // Sync selected price and gateway configuration when modal opens
+  // Sync selected price, completedOrder, and gateway configuration when modal opens
   useEffect(() => {
     if (initialPrice) {
       setSelectedPrice(initialPrice);
@@ -79,6 +79,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
     if (isOpen) {
       setErrorMessage(null);
+      setCompletedOrder(config.activeOrder || null);
       fetch('/api/payment/config')
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
@@ -90,7 +91,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           setGatewayConfigured(null);
         });
     }
-  }, [initialPrice, config.theme?.presetId, isOpen]);
+  }, [initialPrice, config.theme?.presetId, config.activeOrder, isOpen]);
 
   if (!isOpen) return null;
 
@@ -128,10 +129,18 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       return Promise.resolve(true);
     }
     return new Promise((resolve) => {
-      const existingScript = document.querySelector('script[src*="checkout.razorpay.com"]');
+      const existingScript = document.querySelector('script[src*="checkout.razorpay.com"]') as HTMLScriptElement | null;
       if (existingScript) {
-        existingScript.addEventListener('load', () => resolve(Boolean(window.Razorpay)));
-        setTimeout(() => resolve(Boolean(window.Razorpay)), 1500);
+        const start = Date.now();
+        const interval = window.setInterval(() => {
+          if (typeof window.Razorpay !== 'undefined') {
+            window.clearInterval(interval);
+            resolve(true);
+          } else if (Date.now() - start >= 4500) {
+            window.clearInterval(interval);
+            resolve(false);
+          }
+        }, 100);
         return;
       }
       const script = document.createElement('script');
@@ -294,16 +303,22 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         currency: orderData.currency || 'INR',
         order_id: rawOrderId,
         name: 'WED-TALE 3D Studio',
-        description: `${currentPlan.name} • ${coupleTitle}`,
+        description: `${currentPlan.name} - ${coupleTitle}`,
         prefill,
         notes: {
           wedding: coupleTitle,
           plan: currentPlan.name,
         },
+        retry: {
+          enabled: true,
+          max_count: 3,
+        },
+        timeout: 300,
         theme: {
           color: '#C05621',
         },
         modal: {
+          confirm_close: true,
           ondismiss: function () {
             setIsProcessing(false);
           },
@@ -314,27 +329,41 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             const orderId = paymentResponse.razorpay_order_id || rawOrderId;
             const licenseKey = `ROYAL-VIP-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Date.now().toString().slice(-4)}`;
 
-            const verifyResponse = await fetch('/api/razorpay/verify-payment', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                razorpay_order_id: orderId,
-                razorpay_payment_id: paymentId,
-                razorpay_signature: paymentResponse.razorpay_signature,
-                planId: currentPlan.id,
-                planName: currentPlan.name,
-                amount: selectedPrice,
-                coupleNames: coupleTitle,
-                customerName: cleanName,
-                customerEmail: cleanEmail,
-                customerPhone: cleanPhone,
-                isDemo: false,
-              }),
-            });
+            let verifyResponse: Response | null = null;
+            let verifyJson: any = null;
+            for (let attempt = 0; attempt < 2; attempt++) {
+              try {
+                verifyResponse = await fetch('/api/razorpay/verify-payment', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    razorpay_order_id: orderId,
+                    razorpay_payment_id: paymentId,
+                    razorpay_signature: paymentResponse.razorpay_signature,
+                    planId: currentPlan.id,
+                    planName: currentPlan.name,
+                    amount: selectedPrice,
+                    coupleNames: coupleTitle,
+                    customerName: cleanName,
+                    customerEmail: cleanEmail,
+                    customerPhone: cleanPhone,
+                    isDemo: false,
+                  }),
+                });
+                verifyJson = await verifyResponse.json().catch(() => null);
+                if (verifyResponse.ok && verifyJson?.success) break;
+                if (verifyResponse.status === 400) break;
+              } catch {
+                if (attempt === 0) {
+                  await new Promise((r) => setTimeout(r, 600));
+                }
+              }
+            }
 
-            const verifyJson = await verifyResponse.json().catch(() => null);
-            if (!verifyResponse.ok || !verifyJson?.success) {
-              throw new Error(verifyJson?.message || 'Payment signature verification failed.');
+            if (!verifyResponse?.ok || !verifyJson?.success) {
+              throw new Error(
+                `${verifyJson?.message || 'Payment verification failed.'} (Payment Ref: ${paymentId})`
+              );
             }
 
             const verifiedOrder: OrderRecord = {
@@ -535,7 +564,17 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 </button>
               </div>
 
-              <div className="text-center pt-2">
+              <div className="flex items-center justify-center gap-5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCompletedOrder(null);
+                    setErrorMessage(null);
+                  }}
+                  className="text-xs text-neutral-400 hover:text-amber-200 underline"
+                >
+                  Upgrade / Buy Another Tier
+                </button>
                 <button
                   type="button"
                   onClick={onClose}

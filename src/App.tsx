@@ -120,13 +120,15 @@ export default function App() {
   };
 
   const handlePaymentSuccess = (order: OrderRecord) => {
-    const updated: InvitationConfig = {
-      ...config,
-      isUnlocked: true,
-      activeOrder: order,
-    };
-    setConfig(updated);
-    localStorage.setItem('3d_wedding_invitation_config', JSON.stringify(updated));
+    setConfig((prev) => {
+      const updated: InvitationConfig = {
+        ...prev,
+        isUnlocked: true,
+        activeOrder: order,
+      };
+      localStorage.setItem('3d_wedding_invitation_config', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const handleConfigChange = (updated: InvitationConfig) => {
