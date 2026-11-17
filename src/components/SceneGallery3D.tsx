@@ -11,6 +11,7 @@ interface SceneGallery3DProps {
 
 export const SceneGallery3D: React.FC<SceneGallery3DProps> = ({ photos, config }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const touchStartXRef = React.useRef<number | null>(null);
   const isKerala = config ? isKeralaTheme(config) : false;
   const isMuslim = config ? isMuslimTheme(config) : false;
 
@@ -22,6 +23,20 @@ export const SceneGallery3D: React.FC<SceneGallery3DProps> = ({ photos, config }
 
   const handlePrev = () => {
     setCurrentIndex((prev) => (prev - 1 + activePhotos.length) % activePhotos.length);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    touchStartXRef.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (touchStartXRef.current === null) return;
+    const diff = touchStartXRef.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 36) {
+      if (diff > 0) handleNext();
+      else handlePrev();
+    }
+    touchStartXRef.current = null;
   };
 
   const currentPhoto = activePhotos[currentIndex] || activePhotos[0];
@@ -72,8 +87,12 @@ export const SceneGallery3D: React.FC<SceneGallery3DProps> = ({ photos, config }
         </p>
       </div>
 
-      {/* Center 3D Stacked Card Deck */}
-      <div className="relative z-10 w-full max-w-xs aspect-[4/5] my-auto perspective-1000 flex items-center justify-center">
+      {/* Center 3D Stacked Card Deck (Swipeable on Mobile) */}
+      <div
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        className="relative z-10 w-full max-w-[290px] sm:max-w-xs aspect-[4/5] my-auto perspective-1000 flex items-center justify-center touch-pan-y"
+      >
         {/* Background ghost tilt cards for authentic 3D depth */}
         <div
           className="absolute w-[92%] h-[92%] rounded-2xl shadow-md -rotate-6 border"
@@ -149,7 +168,7 @@ export const SceneGallery3D: React.FC<SceneGallery3DProps> = ({ photos, config }
             onClick={handlePrev}
             aria-label="Previous photo"
             type="button"
-            className="w-9 h-9 rounded-full border border-amber-300 shadow-md flex items-center justify-center transition-transform active:scale-95"
+            className="w-11 h-11 rounded-full border border-amber-300 shadow-md flex items-center justify-center transition-transform active:scale-95"
             style={{
               backgroundColor: isMuslim ? '#062D1F' : '#FFFFFF',
               color: isMuslim ? '#FBBF24' : '#374151',
@@ -181,7 +200,7 @@ export const SceneGallery3D: React.FC<SceneGallery3DProps> = ({ photos, config }
             onClick={handleNext}
             aria-label="Next photo"
             type="button"
-            className="w-9 h-9 rounded-full border border-amber-300 shadow-md flex items-center justify-center transition-transform active:scale-95"
+            className="w-11 h-11 rounded-full border border-amber-300 shadow-md flex items-center justify-center transition-transform active:scale-95"
             style={{
               backgroundColor: isMuslim ? '#062D1F' : '#FFFFFF',
               color: isMuslim ? '#FBBF24' : '#374151',

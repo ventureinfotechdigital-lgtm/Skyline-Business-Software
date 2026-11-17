@@ -57,18 +57,20 @@ export const WeddingInvitationWebsite: React.FC<WeddingInvitationWebsiteProps> =
     <div
       ref={containerRef}
       id="wedding-website-container"
-      className="relative w-full h-full overflow-y-auto overflow-x-hidden no-scrollbar bg-neutral-950 font-body scroll-smooth"
+      className="relative w-full h-full overflow-y-auto overflow-x-hidden overscroll-y-contain no-scrollbar bg-neutral-950 font-body scroll-smooth"
+      style={{ WebkitOverflowScrolling: 'touch' }}
     >
       {/* Universal Floating Audio Toggle in Top Right */}
       <FloatingMusicButton musicPreset={config.theme?.musicPreset} />
 
-      {/* Official Verified VIP Invitation Badge if Unlocked */}
+      {/* Official Verified VIP Invitation Label if Unlocked */}
       {config.isUnlocked && (
-        <div className="fixed top-3 left-3 z-40 px-2.5 py-1 rounded-full bg-black/75 backdrop-blur-md border border-amber-400/50 text-[10px] font-cinzel font-bold text-amber-200 flex items-center gap-1.5 shadow-[0_0_15px_rgba(245,158,11,0.3)] animate-in fade-in duration-300">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span>Official Licensed Invitation</span>
+        <div className="fixed top-3 left-3 z-40 px-2.5 py-1 rounded-lg bg-black/75 backdrop-blur-md border border-amber-400/40 text-[10px] font-cinzel font-bold text-amber-200 flex items-center gap-1.5 shadow-lg animate-in fade-in duration-300">
+          <span>Official Licensed</span>
           {config.activeOrder?.licenseKey && (
-            <span className="text-[9px] font-mono text-amber-400/80">({config.activeOrder.licenseKey.slice(0, 14)})</span>
+            <span className="text-[9px] font-mono text-amber-400/80">
+              {config.activeOrder.licenseKey.slice(0, 14)}
+            </span>
           )}
         </div>
       )}

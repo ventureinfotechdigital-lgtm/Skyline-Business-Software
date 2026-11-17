@@ -65,6 +65,7 @@ export const SceneScrollUnfurl: React.FC<SceneScrollUnfurlProps> = ({
 }) => {
   const [isUnrolled, setIsUnrolled] = useState(true);
   const [selectedHeroArt, setSelectedHeroArt] = useState<'embrace' | 'chandelier'>('embrace');
+  const [scrollTilt, setScrollTilt] = useState({ rx: 0, ry: 0 });
   const isKerala = isKeralaTheme(config);
   const isNorthIndian = isNorthIndianTheme(config);
   const isChristian = isChristianTheme(config);
@@ -237,8 +238,21 @@ export const SceneScrollUnfurl: React.FC<SceneScrollUnfurlProps> = ({
                 <div className="w-2.5 h-2.5 rounded-full bg-amber-300 border border-amber-500 shadow-sm" />
               </div>
 
-              {/* Floating Central Invitation Card with subtle parchment texture & gold foil border */}
-              <div className="relative bg-[#FFFDF7] border-x-2 border-b-2 border-amber-400/90 shadow-2xl rounded-b-2xl px-4 py-5 text-center overflow-hidden">
+              {/* Floating Central Invitation Card with interactive 3D tilt, parchment texture & gold foil border */}
+              <div
+                onPointerMove={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const nx = (e.clientX - rect.left) / rect.width - 0.5;
+                  const ny = (e.clientY - rect.top) / rect.height - 0.5;
+                  setScrollTilt({ rx: -ny * 7, ry: nx * 7 });
+                }}
+                onPointerLeave={() => setScrollTilt({ rx: 0, ry: 0 })}
+                style={{
+                  transform: `perspective(1000px) rotateX(${scrollTilt.rx}deg) rotateY(${scrollTilt.ry}deg)`,
+                  transition: 'transform 0.18s ease-out',
+                }}
+                className="relative bg-[#FFFDF7] border-x-2 border-b-2 border-amber-400/90 shadow-2xl rounded-b-2xl px-4 py-5 text-center overflow-hidden touch-pan-y"
+              >
                 {/* Parchment Damask Texture */}
                 <div
                   className="absolute inset-0 opacity-20 pointer-events-none"

@@ -27,6 +27,8 @@ interface ThreeDWeddingCardProps {
   customNames?: { groom: string; bride: string; date?: string; venue?: string };
   isInteractive?: boolean;
   defaultCardStyle?: 'foil-flip' | 'royal-gatefold';
+  isUnlocked?: boolean;
+  onRequireUnlock?: () => void;
 }
 
 export const ThreeDWeddingCard: React.FC<ThreeDWeddingCardProps> = ({
@@ -35,6 +37,8 @@ export const ThreeDWeddingCard: React.FC<ThreeDWeddingCardProps> = ({
   customNames,
   isInteractive = true,
   defaultCardStyle = 'royal-gatefold',
+  isUnlocked = false,
+  onRequireUnlock,
 }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [isGatefoldOpen, setIsGatefoldOpen] = useState(false);
@@ -68,25 +72,23 @@ export const ThreeDWeddingCard: React.FC<ThreeDWeddingCardProps> = ({
     preset.culturalTheme.toLowerCase().includes('rajasthan') ||
     preset.culturalTheme.toLowerCase().includes('rajput');
 
-  // Handle Mouse Tilt
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
+  // Handle Mouse & Touch/Pointer 3D Tilt
+  const updateTiltFromClientCoords = useCallback(
+    (clientX: number, clientY: number) => {
       if (!isInteractive || !cardRef.current) return;
       const rect = cardRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const x = Math.max(0, Math.min(rect.width, clientX - rect.left));
+      const y = Math.max(0, Math.min(rect.height, clientY - rect.top));
 
       const centerX = rect.width / 2;
       const centerY = rect.height / 2;
 
-      // Max tilt angle
-      const rotY = ((x - centerX) / centerX) * 14;
-      const rotX = -((y - centerY) / centerY) * 14;
+      const rotY = ((x - centerX) / centerX) * 16;
+      const rotX = -((y - centerY) / centerY) * 16;
 
       setRotateX(rotX);
       setRotateY(rotY);
 
-      // Specular glare position in percentage
       setGlarePos({
         x: (x / rect.width) * 100,
         y: (y / rect.height) * 100,
@@ -96,11 +98,25 @@ export const ThreeDWeddingCard: React.FC<ThreeDWeddingCardProps> = ({
     [isInteractive]
   );
 
-  const handleMouseEnter = () => {
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!isInteractive) return;
+      if (e.pointerType === 'touch' && !isHovered) return;
+      updateTiltFromClientCoords(e.clientX, e.clientY);
+    },
+    [isInteractive, isHovered, updateTiltFromClientCoords]
+  );
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    setIsHovered(true);
+    updateTiltFromClientCoords(e.clientX, e.clientY);
+  };
+
+  const handlePointerEnter = () => {
     setIsHovered(true);
   };
 
-  const handleMouseLeave = () => {
+  const handlePointerLeave = () => {
     setIsHovered(false);
     setRotateX(0);
     setRotateY(0);
@@ -163,8 +179,14 @@ export const ThreeDWeddingCard: React.FC<ThreeDWeddingCardProps> = ({
     }
   };
 
-  // Copy share link
+  // Copy share link only when licensed/unlocked
   const handleShareCard = () => {
+    if (!isUnlocked) {
+      if (onRequireUnlock) {
+        onRequireUnlock();
+      }
+      return;
+    }
     const text = `✨ You are cordially invited to celebrate the 3D Wedding of ${groom} & ${bride} on ${dateFormatted} at ${venue}. View the 3D Card: ${window.location.href}`;
     navigator.clipboard?.writeText(text);
     setIsCopied(true);
@@ -190,10 +212,13 @@ export const ThreeDWeddingCard: React.FC<ThreeDWeddingCardProps> = ({
     <div className="relative w-full flex flex-col items-center">
       {/* 3D Viewport Wrapper with Realistic Camera Perspective */}
       <div
-        className="relative w-full max-w-[340px] sm:max-w-[360px] aspect-[10/16] perspective-[1400px] select-none py-2"
-        onMouseMove={handleMouseMove}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+        className="relative w-full max-w-[300px] sm:max-w-[350px] aspect-[10/16] perspective-[1400px] select-none py-2 touch-pan-y"
+        onPointerMove={handlePointerMove}
+        onPointerDown={handlePointerDown}
+        onPointerEnter={handlePointerEnter}
+        onPointerUp={handlePointerLeave}
+        onPointerCancel={handlePointerLeave}
+        onPointerLeave={handlePointerLeave}
       >
         {/* The Tilting Card Container */}
         <div
@@ -583,10 +608,10 @@ export const ThreeDWeddingCard: React.FC<ThreeDWeddingCardProps> = ({
           <button
             type="button"
             onClick={handleFlip}
-            className="flex-1 py-2 px-3 rounded-xl bg-neutral-900/90 hover:bg-neutral-800 text-amber-200 border border-amber-400/40 text-xs font-cinzel font-semibold flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all"
+            className="flex-1 min-h-[44px] py-2 px-3 rounded-xl bg-[#151822] hover:bg-[#1E2230] text-amber-200 border border-amber-400/40 text-xs font-cinzel font-semibold flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all whitespace-nowrap"
           >
             <RotateCcw className="w-3.5 h-3.5 text-amber-300" />
-            {isFlipped ? 'Show Front' : 'Flip to Back'}
+            {isFlipped ? 'Show Front' : 'Flip 360°'}
           </button>
 
           <button
@@ -595,21 +620,21 @@ export const ThreeDWeddingCard: React.FC<ThreeDWeddingCardProps> = ({
               setCardStyle(cardStyle === 'foil-flip' ? 'royal-gatefold' : 'foil-flip');
               setIsGatefoldOpen(false);
             }}
-            className={`flex-1 py-2 px-3 rounded-xl text-xs font-cinzel font-semibold flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all ${
+            className={`flex-1 min-h-[44px] py-2 px-3 rounded-xl text-xs font-cinzel font-semibold flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all whitespace-nowrap ${
               cardStyle === 'royal-gatefold'
                 ? 'bg-amber-500 text-neutral-950 font-bold border border-amber-300'
-                : 'bg-neutral-900/90 text-neutral-300 hover:text-white border border-white/15'
+                : 'bg-[#151822] text-slate-200 hover:text-white border border-white/15'
             }`}
           >
             {cardStyle === 'royal-gatefold' ? (
               <>
                 <Unlock className="w-3.5 h-3.5" />
-                Gatefold Mode
+                Gatefold
               </>
             ) : (
               <>
                 <Lock className="w-3.5 h-3.5" />
-                Try Gatefold Box
+                Gatefold Box
               </>
             )}
           </button>
@@ -617,7 +642,7 @@ export const ThreeDWeddingCard: React.FC<ThreeDWeddingCardProps> = ({
           <button
             type="button"
             onClick={handleRingBell}
-            className="p-2 rounded-xl bg-neutral-900/90 hover:bg-neutral-800 text-amber-300 border border-amber-400/40 shadow-md active:scale-95 transition-all"
+            className="min-h-[44px] min-w-[44px] p-2 rounded-xl bg-[#151822] hover:bg-[#1E2230] text-amber-300 border border-amber-400/40 shadow-md active:scale-95 transition-all flex items-center justify-center"
             title="Ring Temple Bell Chime"
           >
             <BellRing className="w-4 h-4" />
@@ -645,21 +670,26 @@ export const ThreeDWeddingCard: React.FC<ThreeDWeddingCardProps> = ({
           </button>
         )}
 
-        {/* Share & Copy Link */}
+        {/* Share & Copy Link (Gated until paid) */}
         <div className="flex items-center gap-2 w-full">
           <button
             type="button"
             onClick={handleShareCard}
-            className="flex-1 py-1.5 px-3 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-[11px] font-body flex items-center justify-center gap-1.5 border border-white/10 transition-colors"
+            className="flex-1 min-h-[40px] py-2 px-3 rounded-lg bg-[#151822] hover:bg-[#1E2230] text-slate-200 text-[11px] font-medium flex items-center justify-center gap-1.5 border border-white/10 transition-colors"
           >
-            {isCopied ? (
+            {!isUnlocked ? (
+              <>
+                <Lock className="w-3.5 h-3.5 text-amber-300" />
+                <span>Share Link Locked &middot; Unlock to Share</span>
+              </>
+            ) : isCopied ? (
               <>
                 <Check className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Invitation Text Copied!</span>
               </>
             ) : (
               <>
-                <Share2 className="w-3.5 h-3.5 text-amber-300" />
+                <Share2 className="w-3.5 h-3.5 text-[#C4B5FD]" />
                 <span>Copy 3D Card Invite</span>
               </>
             )}

@@ -25,6 +25,17 @@
   .font-body {
     font-family: 'Montserrat', 'Plus Jakarta Sans', system-ui, sans-serif;
   }
+  .text-lavender-highlight {
+    background: linear-gradient(120deg, #F5F3FF 0%, #DDD6FE 48%, #A78BFA 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+  .touch-pan-y {
+    touch-action: pan-y;
+  }
 }
 
 /* 3D Perspective & Animations */

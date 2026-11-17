@@ -9,12 +9,11 @@ import {
   Sparkles,
   ShieldCheck,
   Lock,
-  CreditCard,
-  ChevronRight,
-  Gift,
+  Send,
 } from 'lucide-react';
 import { InvitationConfig, PricingTierPrice } from '../types';
-import { getPresetPrice, getPlanByPrice } from '../data/weddingPresets';
+import { getPresetPrice } from '../data/weddingPresets';
+import { SkylineLogo } from './SkylineLogo';
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -36,9 +35,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   if (!isOpen) return null;
 
   const activePrice = getPresetPrice(config.theme?.presetId);
-  const activePlan = getPlanByPrice(activePrice);
 
-  // Standalone official licensed guest URL (Only for unlocked orders)
   const officialGuestUrl = `${window.location.origin}${window.location.pathname}?view=invitation&licensed=true&groom=${encodeURIComponent(
     config.groomName
   )}&bride=${encodeURIComponent(config.brideName)}&date=${encodeURIComponent(
@@ -48,7 +45,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   )}&theme=${encodeURIComponent(config.theme?.presetId || 'rajasthan-royal-darbar')}&order=${config.activeOrder?.licenseKey || 'ROYAL-VIP'}`;
 
   const whatsappMessage = encodeURIComponent(
-    `🌸 Shubh Vivah! 🌸\n\nYou are cordially invited to celebrate the royal wedding of ${config.groomName} & ${config.brideName}!\n\n📅 Date: ${config.weddingDateFormatted}\n📍 Venue: ${config.venueName}, ${config.venueCity}\n\n✨ Experience our Official 3D Animated Invitation Website with interactive scroll, sacred ceremonies & royal music:\n${officialGuestUrl}\n\nWith love,\n${config.groomName} & ${config.brideName}`
+    `You are cordially invited to celebrate the wedding of ${config.groomName} & ${config.brideName}!\n\nDate: ${config.weddingDateFormatted}\nVenue: ${config.venueName}, ${config.venueCity}\n\nOpen our Official 3D Animated Invitation Website:\n${officialGuestUrl}\n\nWith love,\n${config.groomName} & ${config.brideName}`
   );
 
   const whatsappUrl = `https://api.whatsapp.com/send?text=${whatsappMessage}`;
@@ -59,6 +56,22 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     setTimeout(() => setCopied(false), 2500);
   };
 
+  const handleNativeShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${config.groomName} & ${config.brideName} — Wedding Invitation`,
+          text: `You are invited to the wedding of ${config.groomName} & ${config.brideName}.`,
+          url: officialGuestUrl,
+        });
+      } catch {
+        // cancelled
+      }
+    } else {
+      handleCopyLink();
+    }
+  };
+
   const handleOpenCheckout = () => {
     onClose();
     if (onOpenPayment) {
@@ -67,161 +80,169 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-neutral-900 rounded-3xl shadow-2xl overflow-hidden border border-amber-500/40 p-6 text-neutral-100">
-        {/* Close Button */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-md bg-[#12151E] rounded-2xl shadow-2xl overflow-hidden border border-white/12 p-6 text-slate-100">
         <button
           onClick={onClose}
           type="button"
           aria-label="Close"
-          className="absolute top-4 right-4 p-1.5 rounded-full text-neutral-400 hover:text-white bg-black/40 hover:bg-black/60 transition-colors"
+          className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-white bg-[#1C2130] hover:bg-[#262C3F] border border-white/10 transition-colors"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
 
         {/* Modal Header */}
-        <div className="text-center mb-5">
-          <div
-            className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner ${
-              config.isUnlocked
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                : 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
-            }`}
-          >
-            {config.isUnlocked ? (
-              <ShieldCheck className="w-6 h-6 text-emerald-400" />
-            ) : (
-              <Lock className="w-6 h-6 text-amber-400" />
-            )}
+        <div className="text-center mb-5 space-y-2">
+          <div className="flex justify-center">
+            <SkylineLogo size="sm" variant="dark" />
           </div>
-          <h3 className="font-classic text-xl font-bold text-white">
-            {config.isUnlocked ? 'Share Official Guest Invitation' : 'Official Guest Link Locked'}
-          </h3>
-          <p className="text-xs text-neutral-400 font-body mt-1">
+          <div className="flex items-center justify-center gap-1.5 pt-1">
+            {config.isUnlocked ? (
+              <ShieldCheck className="w-5 h-5 text-emerald-400" />
+            ) : (
+              <Lock className="w-4 h-4 text-[#C4B5FD]" />
+            )}
+            <h3 className="text-lg font-semibold text-white">
+              {config.isUnlocked ? (
+                <>
+                  Share <span className="text-lavender-highlight">Official Guest Link</span>
+                </>
+              ) : (
+                <>
+                  Guest Link <span className="text-lavender-highlight">Locked</span>
+                </>
+              )}
+            </h3>
+          </div>
+          <p className="text-xs text-slate-400">
             {config.isUnlocked
-              ? 'Your VIP wedding invitation website is unlocked and ready for all guests'
-              : 'Preview your design directly inside this app. Purchase to unlock the official guest link.'}
+              ? 'Your invitation website is licensed and ready to share with guests'
+              : 'Complete payment to unlock your permanent shareable guest invitation link.'}
           </p>
         </div>
 
-        {/* UNLOCKED STATE: Verified Guest Sharing Controls */}
+        {/* UNLOCKED STATE */}
         {config.isUnlocked ? (
           <div className="space-y-4">
-            <div className="bg-black/50 p-3.5 rounded-2xl border border-emerald-500/30">
+            <div className="bg-[#161924] p-3.5 rounded-xl border border-white/12">
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-[11px] font-cinzel font-semibold text-emerald-300 uppercase tracking-wider block">
+                <label className="text-[11px] font-semibold text-slate-200 block">
                   Official Guest Website Link
                 </label>
-                <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-300 bg-emerald-950/70 px-2 py-0.5 rounded-full border border-emerald-500/40">
-                  <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                  VIP Verified
-                </span>
+                <span className="text-[11px] font-medium text-emerald-400">Licensed</span>
               </div>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
                   readOnly
                   value={officialGuestUrl}
-                  className="flex-1 bg-black/60 border border-neutral-700 rounded-xl px-3 py-2 text-xs text-neutral-300 font-mono select-all focus:outline-none"
+                  className="flex-1 bg-[#0D0F14] border border-white/15 rounded-lg px-3 py-2 text-xs text-slate-100 font-mono select-all focus:outline-none focus:border-[#A78BFA]"
                 />
                 <button
                   id="copy-invitation-link-btn"
                   onClick={handleCopyLink}
                   type="button"
-                  className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-neutral-950 text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors shrink-0"
+                  className="px-3.5 py-2 rounded-lg bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shrink-0"
                 >
-                  {copied ? <Check className="w-4 h-4 text-emerald-950" /> : <Copy className="w-4 h-4" />}
+                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   {copied ? 'Copied' : 'Copy'}
                 </button>
               </div>
             </div>
 
-            {/* Quick Action Buttons for Unlocked State */}
             <div className="space-y-2.5">
               <a
                 id="share-whatsapp-btn"
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-3 px-4 rounded-2xl bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-bold font-body uppercase tracking-wider shadow-md flex items-center justify-center gap-2 transition-transform active:scale-98"
+                className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
               >
                 <MessageCircle className="w-4 h-4" />
                 Share via WhatsApp
               </a>
+
+              <button
+                type="button"
+                onClick={handleNativeShare}
+                className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-[#7C3AED]/20 hover:bg-[#7C3AED]/30 text-[#E9D5FF] text-xs font-semibold border border-[#A78BFA]/35 flex items-center justify-center gap-2 transition-colors"
+              >
+                <Send className="w-4 h-4 text-[#C4B5FD]" />
+                Share via Apps / Contacts
+              </button>
 
               <a
                 id="open-standalone-tab-btn"
                 href={officialGuestUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-3 px-4 rounded-2xl bg-neutral-800 hover:bg-neutral-700 text-white text-xs font-semibold font-body flex items-center justify-center gap-2 border border-neutral-700 transition-colors"
+                className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-[#1B1F2B] hover:bg-[#252A3A] text-slate-100 text-xs font-semibold flex items-center justify-center gap-2 border border-white/12 transition-colors"
               >
-                <ExternalLink className="w-4 h-4 text-amber-300" />
+                <ExternalLink className="w-4 h-4 text-[#C4B5FD]" />
                 Open Live Guest View in New Tab
               </a>
             </div>
 
-            {/* QR Info */}
-            <div className="mt-4 pt-3 border-t border-neutral-800 flex items-center justify-between text-xs text-neutral-400">
-              <span className="flex items-center gap-1.5">
-                <QrCode className="w-4 h-4 text-amber-400" />
-                License: {config.activeOrder?.licenseKey || 'ROYAL-VIP'}
+            <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
+              <span className="flex items-center gap-1.5 font-mono">
+                <QrCode className="w-3.5 h-3.5 text-[#C4B5FD]" />
+                {config.activeOrder?.licenseKey || 'SKY-VIP'}
               </span>
-              <span className="font-mono text-[11px] text-amber-300 font-medium">
+              <span className="font-mono text-[11px] text-slate-300">
                 {config.hashtag}
               </span>
             </div>
           </div>
         ) : (
-          /* LOCKED STATE: Free guest link removed; prompt user to purchase */
+          /* LOCKED STATE */
           <div className="space-y-4">
-            <div className="p-4 rounded-2xl bg-gradient-to-b from-amber-950/40 via-black/60 to-black/80 border border-amber-500/30 text-left space-y-2.5">
+            <div className="p-4 rounded-xl bg-[#161924] border border-white/12 text-left space-y-2.5">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-cinzel font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1">
-                  <Lock className="w-3.5 h-3.5 text-amber-400" />
-                  VIP Guest Access Required
+                <span className="text-xs font-semibold text-white">
+                  VIP Guest Access
                 </span>
-                <span className="text-xs font-bold text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-500/40 font-sans">
+                <span className="text-sm font-bold text-amber-300 tabular-nums">
                   ₹{activePrice.toLocaleString('en-IN')}
                 </span>
               </div>
 
-              <p className="text-xs text-neutral-300 leading-relaxed font-body">
-                To prevent unauthorized distribution, free external guest preview links have been disabled. You can freely customize and preview everything directly in the app.
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Preview and customize everything freely inside the studio. Link sharing is locked until checkout is completed via Razorpay.
               </p>
 
-              <div className="pt-2 border-t border-white/10 space-y-1.5 text-[11px] text-neutral-300">
+              <div className="flex items-center gap-2 bg-[#0D0F14] border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-500 font-mono select-none">
+                <Lock className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                <span className="truncate blur-[2px]">
+                  {window.location.origin}/?view=invitation&amp;token=SKY-VIP-LOCKED
+                </span>
+              </div>
+
+              <div className="pt-2 border-t border-white/10 space-y-1.5 text-[11px] text-slate-300">
                 <div className="flex items-center gap-1.5">
-                  <Check className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span>Permanent unique wedding website link for all guests</span>
+                  <Check className="w-3.5 h-3.5 text-[#C4B5FD] shrink-0" />
+                  <span>Permanent shareable wedding website link</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Check className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span>One-click WhatsApp invitation broadcast card</span>
+                  <Check className="w-3.5 h-3.5 text-[#C4B5FD] shrink-0" />
+                  <span>One-click WhatsApp &amp; direct invite sharing</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Check className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span>Live interactive 3D Scroll, Gatefold &amp; Musician animations</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Check className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span>Instant RSVP tracking &amp; guest petal blessings</span>
+                  <Check className="w-3.5 h-3.5 text-[#C4B5FD] shrink-0" />
+                  <span>Interactive 3D Scroll, Gatefold &amp; RSVP tracking</span>
                 </div>
               </div>
             </div>
 
-            {/* Direct Unlock / Buy CTA Button */}
             <button
               id="unlock-guest-link-cta-btn"
               type="button"
               onClick={handleOpenCheckout}
-              className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-600 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-neutral-950 font-cinzel font-bold text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(245,158,11,0.4)] flex items-center justify-center gap-2 transition-all active:scale-98"
+              className="w-full min-h-[44px] py-3 px-4 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-semibold text-xs shadow-lg flex items-center justify-center gap-2 transition-all tabular-nums"
             >
-              <Sparkles className="w-4 h-4 text-neutral-950" />
-              <span>Purchase &amp; Unlock Guest Link (₹{activePrice.toLocaleString('en-IN')})</span>
+              <Sparkles className="w-4 h-4 text-[#E9D5FF]" />
+              <span>Purchase &amp; Unlock Link (₹{activePrice.toLocaleString('en-IN')})</span>
             </button>
 
-            {/* Compare Plans Link */}
             {onOpenPricing && (
               <button
                 type="button"
@@ -229,9 +250,9 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                   onClose();
                   onOpenPricing();
                 }}
-                className="w-full py-2 text-center text-xs text-amber-300/80 hover:text-amber-200 font-cinzel font-semibold transition-colors"
+                className="w-full py-1.5 text-center text-xs text-slate-400 hover:text-white font-medium transition-colors"
               >
-                Compare all 4 Design Tiers (₹1,499 - ₹2,999) &rarr;
+                Compare all 4 Design Tiers (₹1,499 – ₹2,999) &rarr;
               </button>
             )}
           </div>

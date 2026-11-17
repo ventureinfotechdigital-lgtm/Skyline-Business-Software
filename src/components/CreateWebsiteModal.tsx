@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { InvitationConfig } from '../types';
 import { weddingAudio } from '../utils/audioSynth';
+import { SkylineLogo } from './SkylineLogo';
 import confetti from 'canvas-confetti';
 
 interface CreateWebsiteModalProps {
@@ -128,29 +129,27 @@ export const CreateWebsiteModal: React.FC<CreateWebsiteModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-amber-200 flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-xl bg-[#12151E] text-slate-100 rounded-2xl shadow-2xl overflow-hidden border border-white/12 flex flex-col max-h-[90vh]">
         {/* Close Button */}
         <button
           onClick={onClose}
           type="button"
           aria-label="Close"
-          className="absolute top-4 right-4 p-2 rounded-full text-neutral-400 hover:text-neutral-700 bg-neutral-100 hover:bg-neutral-200 transition-colors z-20"
+          className="absolute top-4 right-4 p-2 rounded-lg text-slate-400 hover:text-white bg-[#1C2130] hover:bg-[#262C3F] border border-white/10 transition-colors z-20"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
 
         {/* Modal Header */}
-        <div className="p-6 bg-gradient-to-r from-amber-900 via-rose-950 to-neutral-900 text-white border-b border-amber-500/30 text-center relative overflow-hidden">
+        <div className="p-6 bg-gradient-to-r from-[#171B26] via-[#1C2130] to-[#141720] text-white border-b border-white/10 text-center relative overflow-hidden">
           <div className="relative z-10 flex flex-col items-center">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-neutral-950 shadow-lg mb-2">
-              <Sparkles className="w-6 h-6" />
-            </div>
-            <h2 className="font-classic text-2xl font-bold text-amber-200">
-              Create Your 3D Wedding Website
+            <SkylineLogo size="sm" variant="dark" className="mb-3" />
+            <h2 className="text-xl font-bold text-white">
+              Create Your <span className="text-lavender-highlight">3D Wedding Website</span>
             </h2>
-            <p className="text-xs text-amber-100/80 font-body mt-1 max-w-md">
-              Enter couple details, date, venue, and upload photos to generate a viral 3D animated invitation website.
+            <p className="text-xs text-slate-400 mt-1 max-w-md">
+              Enter couple details, date, venue, and photos to build your interactive 3D invitation.
             </p>
 
             {/* Stepper Dots */}
@@ -158,32 +157,32 @@ export const CreateWebsiteModal: React.FC<CreateWebsiteModalProps> = ({
               <span
                 className={`w-7 h-7 rounded-full text-xs font-semibold flex items-center justify-center border transition-all ${
                   step === 1
-                    ? 'bg-amber-400 text-neutral-950 border-amber-300 font-bold scale-110'
+                    ? 'bg-[#7C3AED] text-white border-[#C4B5FD] font-bold scale-105'
                     : step > 1
                     ? 'bg-emerald-600 text-white border-emerald-400'
-                    : 'bg-white/10 text-white/60 border-white/20'
+                    : 'bg-[#1B1F2B] text-slate-400 border-white/10'
                 }`}
               >
                 1
               </span>
-              <span className="w-6 h-0.5 bg-white/20" />
+              <span className="w-6 h-0.5 bg-white/15" />
               <span
                 className={`w-7 h-7 rounded-full text-xs font-semibold flex items-center justify-center border transition-all ${
                   step === 2
-                    ? 'bg-amber-400 text-neutral-950 border-amber-300 font-bold scale-110'
+                    ? 'bg-[#7C3AED] text-white border-[#C4B5FD] font-bold scale-105'
                     : step > 2
                     ? 'bg-emerald-600 text-white border-emerald-400'
-                    : 'bg-white/10 text-white/60 border-white/20'
+                    : 'bg-[#1B1F2B] text-slate-400 border-white/10'
                 }`}
               >
                 2
               </span>
-              <span className="w-6 h-0.5 bg-white/20" />
+              <span className="w-6 h-0.5 bg-white/15" />
               <span
                 className={`w-7 h-7 rounded-full text-xs font-semibold flex items-center justify-center border transition-all ${
                   step === 3
-                    ? 'bg-amber-400 text-neutral-950 border-amber-300 font-bold scale-110'
-                    : 'bg-white/10 text-white/60 border-white/20'
+                    ? 'bg-[#7C3AED] text-white border-[#C4B5FD] font-bold scale-105'
+                    : 'bg-[#1B1F2B] text-slate-400 border-white/10'
                 }`}
               >
                 3
@@ -197,15 +196,15 @@ export const CreateWebsiteModal: React.FC<CreateWebsiteModalProps> = ({
           {/* STEP 1: COUPLE DETAILS */}
           {step === 1 && (
             <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-              <div className="flex items-center gap-2 text-amber-900 font-cinzel font-semibold text-xs uppercase tracking-wider border-b border-amber-100 pb-2">
-                <Heart className="w-4 h-4 text-rose-600" />
-                Step 1: Who is getting married?
+              <div className="flex items-center gap-2 text-white font-semibold text-xs border-b border-white/10 pb-2">
+                <Heart className="w-4 h-4 text-[#C4B5FD]" />
+                Step 1: Couple Details
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-semibold text-neutral-700 block mb-1.5">
-                    Groom's Name *
+                  <label className="text-xs font-medium text-slate-200 block mb-1.5">
+                    Groom&apos;s Name *
                   </label>
                   <input
                     id="modal-input-groom"
@@ -214,13 +213,13 @@ export const CreateWebsiteModal: React.FC<CreateWebsiteModalProps> = ({
                     value={groomName}
                     onChange={(e) => setGroomName(e.target.value)}
                     placeholder="e.g., Pulkit"
-                    className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-3.5 py-2.5 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all"
+                    className="w-full bg-[#0D0F14] border border-white/15 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#A78BFA] transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-neutral-700 block mb-1.5">
-                    Bride's Name *
+                  <label className="text-xs font-medium text-slate-200 block mb-1.5">
+                    Bride&apos;s Name *
                   </label>
                   <input
                     id="modal-input-bride"
@@ -229,22 +228,22 @@ export const CreateWebsiteModal: React.FC<CreateWebsiteModalProps> = ({
                     value={brideName}
                     onChange={(e) => setBrideName(e.target.value)}
                     placeholder="e.g., Shreya"
-                    className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-3.5 py-2.5 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all"
+                    className="w-full bg-[#0D0F14] border border-white/15 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#A78BFA] transition-all"
                   />
                 </div>
               </div>
 
-              {/* Preview Monogram Badge */}
-              <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/80 flex items-center justify-between">
+              {/* Preview Monogram */}
+              <div className="bg-[#161924] p-4 rounded-xl border border-white/10 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold text-amber-950 font-cinzel">
-                    Royal Monogram Emblem:
+                  <p className="text-xs font-semibold text-white">
+                    Monogram Emblem
                   </p>
-                  <p className="text-[11px] text-amber-800/80">
-                    Will glow on the royal palace arch &amp; 3D scenes
+                  <p className="text-[11px] text-slate-400">
+                    Displayed across the scroll arch &amp; 3D scenes
                   </p>
                 </div>
-                <div className="w-12 h-12 rounded-full bg-amber-600 border-2 border-amber-300 text-white font-title text-lg font-black flex items-center justify-center shadow-md">
+                <div className="w-12 h-12 rounded-full bg-[#7C3AED] border-2 border-[#C4B5FD] text-white font-title text-lg font-black flex items-center justify-center shadow-md">
                   {groomName.charAt(0).toUpperCase() || 'G'}
                   {brideName.charAt(0).toUpperCase() || 'B'}
                 </div>
@@ -255,14 +254,14 @@ export const CreateWebsiteModal: React.FC<CreateWebsiteModalProps> = ({
           {/* STEP 2: DATE & VENUE */}
           {step === 2 && (
             <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-              <div className="flex items-center gap-2 text-amber-900 font-cinzel font-semibold text-xs uppercase tracking-wider border-b border-amber-100 pb-2">
-                <Calendar className="w-4 h-4 text-amber-600" />
-                Step 2: When &amp; Where is the wedding?
+              <div className="flex items-center gap-2 text-white font-semibold text-xs border-b border-white/10 pb-2">
+                <Calendar className="w-4 h-4 text-[#C4B5FD]" />
+                Step 2: Date &amp; Venue
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-semibold text-neutral-700 block mb-1.5">
+                  <label className="text-xs font-medium text-slate-200 block mb-1.5">
                     Wedding Date *
                   </label>
                   <input
@@ -271,12 +270,12 @@ export const CreateWebsiteModal: React.FC<CreateWebsiteModalProps> = ({
                     required
                     value={weddingDate}
                     onChange={(e) => setWeddingDate(e.target.value)}
-                    className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-3.5 py-2.5 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all"
+                    className="w-full bg-[#0D0F14] border border-white/15 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#A78BFA] transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-neutral-700 block mb-1.5">
+                  <label className="text-xs font-medium text-slate-200 block mb-1.5">
                     Ceremony Time *
                   </label>
                   <input
@@ -285,13 +284,13 @@ export const CreateWebsiteModal: React.FC<CreateWebsiteModalProps> = ({
                     required
                     value={weddingTime}
                     onChange={(e) => setWeddingTime(e.target.value)}
-                    className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-3.5 py-2.5 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all"
+                    className="w-full bg-[#0D0F14] border border-white/15 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#A78BFA] transition-all"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-neutral-700 block mb-1.5">
+                <label className="text-xs font-medium text-slate-200 block mb-1.5">
                   Venue Name *
                 </label>
                 <input
@@ -301,13 +300,13 @@ export const CreateWebsiteModal: React.FC<CreateWebsiteModalProps> = ({
                   value={venueName}
                   onChange={(e) => setVenueName(e.target.value)}
                   placeholder="e.g., The Oberoi Udaivilas"
-                  className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-3.5 py-2.5 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all"
+                  className="w-full bg-[#0D0F14] border border-white/15 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#A78BFA] transition-all"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-semibold text-neutral-700 block mb-1.5">
+                  <label className="text-xs font-medium text-slate-200 block mb-1.5">
                     City / Destination *
                   </label>
                   <input
@@ -317,12 +316,12 @@ export const CreateWebsiteModal: React.FC<CreateWebsiteModalProps> = ({
                     value={venueCity}
                     onChange={(e) => setVenueCity(e.target.value)}
                     placeholder="e.g., Udaipur, Rajasthan"
-                    className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-3.5 py-2.5 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all"
+                    className="w-full bg-[#0D0F14] border border-white/15 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#A78BFA] transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-neutral-700 block mb-1.5">
+                  <label className="text-xs font-medium text-slate-200 block mb-1.5">
                     Address / Landmark
                   </label>
                   <input
@@ -331,7 +330,7 @@ export const CreateWebsiteModal: React.FC<CreateWebsiteModalProps> = ({
                     value={venueAddress}
                     onChange={(e) => setVenueAddress(e.target.value)}
                     placeholder="e.g., Haridas Ji Ki Magri, Mulla Talai"
-                    className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-3.5 py-2.5 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all"
+                    className="w-full bg-[#0D0F14] border border-white/15 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#A78BFA] transition-all"
                   />
                 </div>
               </div>
@@ -341,26 +340,26 @@ export const CreateWebsiteModal: React.FC<CreateWebsiteModalProps> = ({
           {/* STEP 3: UPLOAD PHOTOS */}
           {step === 3 && (
             <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-              <div className="flex items-center gap-2 text-amber-900 font-cinzel font-semibold text-xs uppercase tracking-wider border-b border-amber-100 pb-2">
-                <Upload className="w-4 h-4 text-amber-600" />
-                Step 3: Upload Couple Photos
+              <div className="flex items-center gap-2 text-white font-semibold text-xs border-b border-white/10 pb-2">
+                <Upload className="w-4 h-4 text-[#C4B5FD]" />
+                Step 3: Couple Photos
               </div>
 
               {/* Main Photo */}
-              <div className="bg-neutral-50 p-4 rounded-2xl border border-neutral-200 flex items-center gap-4">
+              <div className="bg-[#161924] p-4 rounded-xl border border-white/10 flex items-center gap-4">
                 <img
                   src={heroPhoto}
                   alt="Couple Preview"
-                  className="w-20 h-20 rounded-xl object-cover border-2 border-amber-400 shadow-md shrink-0"
+                  className="w-20 h-20 rounded-lg object-cover border border-white/15 shadow-md shrink-0"
                 />
                 <div className="flex-1">
-                  <h4 className="text-xs font-bold text-neutral-900 font-cinzel mb-0.5">
+                  <h4 className="text-xs font-semibold text-white mb-0.5">
                     Main Couple Portrait
                   </h4>
-                  <p className="text-[11px] text-neutral-500 mb-2">
+                  <p className="text-[11px] text-slate-400 mb-2">
                     Used for the blessing scene, gallery, and invitation card.
                   </p>
-                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold cursor-pointer shadow-xs transition-colors">
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-semibold cursor-pointer transition-colors">
                     <Upload className="w-3.5 h-3.5" />
                     Upload Couple Photo
                     <input
@@ -375,25 +374,25 @@ export const CreateWebsiteModal: React.FC<CreateWebsiteModalProps> = ({
               </div>
 
               {/* Scratch Reveal Secret Photo */}
-              <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/80 flex items-center gap-4">
+              <div className="bg-[#161924] p-4 rounded-xl border border-white/10 flex items-center gap-4">
                 <img
                   src={scratchPhoto}
                   alt="Secret Scratch Preview"
-                  className="w-20 h-20 rounded-xl object-cover border-2 border-amber-500 shadow-md shrink-0"
+                  className="w-20 h-20 rounded-lg object-cover border border-white/15 shadow-md shrink-0"
                 />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <h4 className="text-xs font-bold text-amber-900 font-cinzel">
-                      Secret Scratch-to-Reveal Photo
+                    <h4 className="text-xs font-semibold text-white">
+                      Scratch-to-Reveal Keepsake
                     </h4>
-                    <span className="text-[10px] bg-amber-200 text-amber-900 font-bold px-1.5 py-0.5 rounded">
+                    <span className="text-[11px] text-[#C4B5FD] font-medium">
                       Interactive
                     </span>
                   </div>
-                  <p className="text-[11px] text-neutral-600 mb-2">
+                  <p className="text-[11px] text-slate-400 mb-2">
                     The surprise photo hidden under golden scratch foil.
                   </p>
-                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold cursor-pointer shadow-xs transition-colors">
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1F2433] hover:bg-[#7C3AED] text-slate-100 text-xs font-semibold cursor-pointer border border-white/15 transition-colors">
                     <Upload className="w-3.5 h-3.5" />
                     Upload Reveal Photo
                     <input
@@ -411,12 +410,12 @@ export const CreateWebsiteModal: React.FC<CreateWebsiteModalProps> = ({
         </div>
 
         {/* Modal Footer Controls */}
-        <div className="p-4 bg-neutral-50 border-t border-neutral-200 flex items-center justify-between">
+        <div className="p-4 bg-[#0D0F14] border-t border-white/10 flex items-center justify-between">
           {step > 1 ? (
             <button
               onClick={() => setStep(step - 1)}
               type="button"
-              className="flex items-center gap-1 px-4 py-2 rounded-xl text-neutral-600 hover:text-neutral-900 text-xs font-semibold transition-colors"
+              className="flex items-center gap-1 px-4 py-2 rounded-lg text-slate-300 hover:text-white text-xs font-semibold transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               Back
@@ -430,7 +429,7 @@ export const CreateWebsiteModal: React.FC<CreateWebsiteModalProps> = ({
               id="modal-next-step-btn"
               onClick={() => setStep(step + 1)}
               type="button"
-              className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold font-cinzel tracking-wider uppercase shadow-md transition-all active:scale-98"
+              className="flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-semibold shadow-md transition-all"
             >
               Next Step
               <ArrowRight className="w-4 h-4" />
@@ -441,10 +440,10 @@ export const CreateWebsiteModal: React.FC<CreateWebsiteModalProps> = ({
               onClick={handleCreate}
               disabled={isGenerating}
               type="button"
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-rose-600 to-amber-600 text-white text-xs font-bold font-cinzel tracking-widest uppercase shadow-xl hover:shadow-amber-500/40 transition-all active:scale-98 disabled:opacity-50"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-semibold shadow-xl transition-all disabled:opacity-50"
             >
               <Wand2 className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
-              {isGenerating ? 'Crafting 3D Website...' : 'Create 3D Website ✨'}
+              {isGenerating ? 'Crafting 3D Website...' : 'Create 3D Website'}
             </button>
           )}
         </div>

@@ -4,7 +4,6 @@ import {
   Calendar,
   MapPin,
   Image as ImageIcon,
-  Clock,
   Sparkles,
   Share2,
   Eye,
@@ -13,23 +12,25 @@ import {
   Upload,
   Plus,
   Trash2,
-  Music,
   CheckCircle2,
-  Layers,
-  Wand2,
-  Compass,
   ArrowRight,
-  Flower2,
   Check,
   Flame,
   Camera,
-  CreditCard,
   ShieldCheck,
-  Tag,
-  Receipt,
+  Palette,
+  ChevronRight,
+  Lock,
+  CreditCard,
 } from 'lucide-react';
-import { InvitationConfig, ViewMode, EventItem, PricingTierPrice } from '../types';
-import { WEDDING_PRESETS, WeddingPreset, THEME_PHOTO_LIBRARY, getPresetPrice, getPresetTierName } from '../data/weddingPresets';
+import { InvitationConfig, ViewMode, EventItem, PricingTierPrice, OrderRecord } from '../types';
+import {
+  WEDDING_PRESETS,
+  WeddingPreset,
+  THEME_PHOTO_LIBRARY,
+  getPresetPrice,
+  getPresetTierName,
+} from '../data/weddingPresets';
 import goldenHaldiImg from '../assets/images/golden_haldi_ceremony_1788535162943.jpg';
 import twilightMehendiImg from '../assets/images/twilight_garden_mehendi_1788535181766.jpg';
 import royalSangeetImg from '../assets/images/royal_sangeet_celebration_1788588370944.jpg';
@@ -37,6 +38,9 @@ import royalSindoorImg from '../assets/images/royal_sindoor_vivaha_1788535101917
 import lavenderReceptionImg from '../assets/images/lavender_reception_aisle_1788535137772.jpg';
 import { weddingAudio } from '../utils/audioSynth';
 import confetti from 'canvas-confetti';
+import { SkylineLogo } from './SkylineLogo';
+import { CoupleEndPreview } from './CoupleEndPreview';
+import { PayUnlockSection, BuilderStepId } from './PayUnlockSection';
 
 interface BuilderSidebarProps {
   config: InvitationConfig;
@@ -47,6 +51,7 @@ interface BuilderSidebarProps {
   onOpenCreateModal?: () => void;
   onOpen3DStudio?: () => void;
   onOpenPayment?: (price?: PricingTierPrice) => void;
+  onPaymentSuccess: (order: OrderRecord) => void;
   onOpenPricing?: () => void;
   onApplyPreset?: (preset: WeddingPreset) => void;
   onViewWebsite?: () => void;
@@ -59,19 +64,20 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
   viewMode,
   onViewModeChange,
   onOpenShare,
-  onOpenCreateModal,
+  onOpenCreateModal: _onOpenCreateModal,
   onOpen3DStudio,
   onOpenPayment,
+  onPaymentSuccess,
   onOpenPricing,
   onApplyPreset,
   onViewWebsite,
   onGenerateWebsite,
 }) => {
-  const [activeTab, setActiveTab] = useState<'couple' | 'venue' | 'ceremonies' | 'photos' | 'presets'>('couple');
+  // Theme comes FIRST by default; Pay & Share is Step 6
+  const [activeTab, setActiveTab] = useState<BuilderStepId>('presets');
   const [isGenerated, setIsGenerated] = useState(false);
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
 
-  // Check how many details are filled
   const isCoupleFilled = Boolean(config.groomName && config.brideName);
   const isVenueFilled = Boolean(config.weddingDate && config.venueName && config.venueCity);
   const isEventsFilled = config.events.length > 0;
@@ -84,7 +90,6 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
 
   const handleTextChange = (field: keyof InvitationConfig, val: string) => {
     const updated = { ...config, [field]: val };
-    // Auto-update monogram and hashtag if names change
     if (field === 'groomName' || field === 'brideName') {
       const gInitial = (field === 'groomName' ? val : config.groomName).charAt(0).toUpperCase();
       const bInitial = (field === 'brideName' ? val : config.brideName).charAt(0).toUpperCase();
@@ -131,7 +136,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
           const newPhoto = {
             id: 'g-' + Date.now(),
             url: reader.result,
-            caption: 'Auspicious Moment ✨',
+            caption: 'Auspicious Moment',
             date: 'Wedding Festivities',
           };
           onChange({
@@ -174,14 +179,13 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
     });
   };
 
-  // Generate Website Action
   const handleGenerateWebsite = () => {
     weddingAudio.playBlessingChime();
     confetti({
       particleCount: 75,
       spread: 80,
       origin: { y: 0.65 },
-      colors: ['#D4AF37', '#F59E0B', '#E11D48', '#FF69B4', '#FFF'],
+      colors: ['#7C3AED', '#A855F7', '#F5D08A', '#E9D5FF', '#FFFFFF'],
     });
 
     setIsGenerated(true);
@@ -199,80 +203,100 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
     }
   };
 
+  const steps: Array<{ id: BuilderStepId; num: number; label: string }> = [
+    { id: 'presets', num: 1, label: '3D Themes' },
+    { id: 'couple', num: 2, label: 'Couple' },
+    { id: 'venue', num: 3, label: 'Date & Venue' },
+    { id: 'ceremonies', num: 4, label: 'Ceremonies' },
+    { id: 'photos', num: 5, label: 'Media Gallery' },
+    { id: 'pay', num: 6, label: config.isUnlocked ? 'Share & Receipt' : 'Pay & Unlock' },
+  ];
+
   return (
     <aside
       id="invitation-builder-sidebar"
-      className="w-full lg:w-[440px] xl:w-[480px] h-full flex flex-col bg-[#09090D] border-r border-pink-500/25 shadow-2xl overflow-hidden z-20 font-body text-pink-50"
+      className="w-full lg:w-[440px] xl:w-[470px] lg:h-full flex flex-col bg-[#0D0F14] border-r border-white/10 shadow-2xl lg:overflow-hidden z-20 font-sans text-slate-100"
     >
-      {/* Luxury Pink & Black Header Banner */}
-      <div className="relative bg-gradient-to-b from-[#220415] via-[#12010B] to-[#070004] p-4 text-white border-b-2 border-pink-500/40 overflow-hidden shrink-0 shadow-lg">
-        {/* Subtle Background Pink Twinkle Texture */}
-        <div className="absolute inset-0 pointer-events-none opacity-20 bg-[radial-gradient(#F472B6_1px,transparent_1px)] [background-size:16px_16px]" />
-
-        {/* Top Badges */}
-        <div className="relative z-10 flex items-center justify-between text-pink-300 mb-1.5">
-          <span className="font-cinzel text-[11px] font-bold tracking-[0.2em] uppercase flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-pink-400 animate-sparkle" />
-            ROYAL WEDDING COLLECTION
-          </span>
-          <span className="font-cinzel text-[11px] font-bold tracking-[0.2em] uppercase flex items-center gap-1.5">
-            3D INTERACTIVE SUITE
-            <Sparkles className="w-3.5 h-3.5 text-pink-400 animate-sparkle" />
-          </span>
-        </div>
-
-        {/* Title & Couple Tag */}
-        <div className="relative z-10 flex items-center justify-between gap-2">
-          <div>
-            <h1 className="font-classic font-bold text-pink-100 text-lg leading-tight flex items-center gap-2">
-              <span>Wedding Invitation Studio</span>
-            </h1>
-            <p className="text-xs text-pink-300/80 font-editorial italic mt-0.5">
-              {config.groomName} &amp; {config.brideName} • 3D Wedding Website
+      {/* Balanced Obsidian Slate Header with Skyline Logo & Lavender Highlights */}
+      <div className="relative bg-gradient-to-b from-[#171B26] via-[#12151E] to-[#0D0F14] p-4 text-white border-b border-white/10 shrink-0">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <SkylineLogo size="md" variant="dark" />
+            <p className="text-xs text-slate-400 mt-1.5 truncate">
+              <span className="text-lavender-highlight font-semibold">
+                {config.groomName} &amp; {config.brideName}
+              </span>
+              <span className="text-slate-600 mx-1.5">&middot;</span>
+              <span>3D Wedding Studio</span>
             </p>
           </div>
 
           <button
             id="open-share-modal-btn"
-            onClick={onOpenShare}
+            onClick={config.isUnlocked ? onOpenShare : () => setActiveTab('pay')}
             type="button"
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-pink-500/20 hover:bg-pink-500/30 border border-pink-400/40 text-pink-200 text-xs font-cinzel font-semibold shadow-xs transition-colors shrink-0 active:scale-95"
+            className={`flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-lg border text-xs font-semibold transition-colors shrink-0 whitespace-nowrap active:scale-95 ${
+              config.isUnlocked
+                ? 'bg-[#7C3AED] hover:bg-[#6D28D9] border-[#C4B5FD]/40 text-white'
+                : 'bg-[#1E2230] hover:bg-[#272C3D] border-white/12 text-slate-200'
+            }`}
+            title={config.isUnlocked ? 'Share Official Guest Link' : 'Share link is locked until payment in Step 6'}
           >
-            <Share2 className="w-3.5 h-3.5 text-pink-300" />
-            Share
+            {config.isUnlocked ? (
+              <>
+                <Share2 className="w-3.5 h-3.5 text-[#E9D5FF]" />
+                <span>Share Link</span>
+              </>
+            ) : (
+              <>
+                <Lock className="w-3.5 h-3.5 text-amber-300" />
+                <span>Share Locked</span>
+              </>
+            )}
           </button>
         </div>
 
-        {/* Progress Readiness Bar */}
-        <div className="relative z-10 mt-3 pt-2.5 border-t border-pink-500/25 flex items-center justify-between text-[11px]">
-          <span className="text-pink-200/90 font-cinzel flex items-center gap-1">
-            <CheckCircle2 className="w-3.5 h-3.5 text-pink-400" />
-            Invitation Readiness: {completedSteps}/{totalSteps} Completed
+        {/* Readiness Progress */}
+        <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between text-[11px]">
+          <span className="text-slate-300 font-medium flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5 text-[#C4B5FD]" />
+            <span>
+              Readiness:{' '}
+              <strong className="text-[#E9D5FF] tabular-nums">
+                {completedSteps}/{totalSteps}
+              </strong>{' '}
+              Steps
+            </span>
           </span>
-          <span className="text-pink-300 font-bold font-mono">{progressPercent}% Ready</span>
+          <span className="text-[#DDD6FE] font-semibold tabular-nums">{progressPercent}% Ready</span>
         </div>
-        <div className="relative z-10 w-full h-1.5 bg-black/70 rounded-full mt-1 overflow-hidden border border-pink-500/30">
+        <div className="w-full h-1.5 bg-black/50 rounded-full mt-1.5 overflow-hidden border border-white/10">
           <div
-            className="h-full bg-gradient-to-r from-pink-500 via-rose-500 to-fuchsia-500 rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(236,72,153,0.5)]"
+            className="h-full bg-gradient-to-r from-[#7C3AED] via-[#A78BFA] to-[#F5D08A] rounded-full transition-all duration-300"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
 
-        {/* Pricing & License Status Strip */}
-        <div className="relative z-10 mt-2.5 pt-2 border-t border-pink-500/20 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 min-w-0">
+        {/* Pricing & License Row */}
+        <div className="mt-2.5 pt-2.5 border-t border-white/10 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0 text-xs">
             {config.isUnlocked ? (
-              <span className="flex items-center gap-1 text-[11px] font-cinzel font-bold text-emerald-300 bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-500/40">
-                <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                VIP Licensed
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400">
+                <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                <span>VIP License Active</span>
               </span>
             ) : (
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-[10px] uppercase font-cinzel text-amber-300/90 font-bold">Design Tier:</span>
-                <span className="text-xs font-bold font-sans text-amber-300 bg-amber-500/20 px-1.5 py-0.2 rounded border border-amber-500/40">
-                  ₹{activePrice}
+              <div className="flex items-center gap-1.5 min-w-0 truncate">
+                <span className="text-[11px] text-slate-400 font-medium shrink-0">
+                  Selected Tier:
                 </span>
-                <span className="text-[10px] text-pink-200/70 truncate hidden sm:inline">{activeTierName.split('(')[0]}</span>
+                <span className="text-xs font-bold text-amber-300 tabular-nums shrink-0">
+                  ₹{activePrice.toLocaleString('en-IN')}
+                </span>
+                <span className="text-slate-600 hidden sm:inline">&middot;</span>
+                <span className="text-[11px] text-slate-300 truncate hidden sm:inline">
+                  {activeTierName.split('(')[0].trim()}
+                </span>
               </div>
             )}
           </div>
@@ -282,8 +306,8 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
               <button
                 type="button"
                 onClick={onOpenPricing}
-                className="px-2 py-1 rounded-lg text-[10px] font-cinzel font-bold text-pink-200 hover:text-white bg-pink-500/20 hover:bg-pink-500/30 border border-pink-500/40 transition-colors"
-                title="View All 4 Pricing Tiers (₹1499 - ₹2999)"
+                className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-slate-200 hover:text-white bg-[#1B1F2B] hover:bg-[#252A3A] border border-white/10 transition-colors whitespace-nowrap shrink-0"
+                title="View All 4 Pricing Tiers (₹1,499 - ₹2,999)"
               >
                 Plans
               </button>
@@ -293,192 +317,330 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
               <button
                 type="button"
                 onClick={() => onOpenPayment(activePrice)}
-                className="px-2.5 py-1 rounded-lg text-[10px] font-cinzel font-bold bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-neutral-950 shadow-sm flex items-center gap-1 transition-all active:scale-95"
+                className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-[#7C3AED] hover:bg-[#6D28D9] text-white shadow-sm flex items-center gap-1 transition-all whitespace-nowrap shrink-0 tabular-nums active:scale-95"
               >
-                <Sparkles className="w-3 h-3 text-neutral-950" />
-                <span>{config.isUnlocked ? 'VIP Active' : `Buy ₹${activePrice}`}</span>
+                <Sparkles className="w-3 h-3 text-[#E9D5FF]" />
+                <span>{config.isUnlocked ? 'Share / Receipt' : `Buy ₹${activePrice.toLocaleString('en-IN')}`}</span>
               </button>
             )}
           </div>
         </div>
       </div>
 
-      {/* View Mode & Live Preview Switcher Strip */}
-      <div className="px-4 py-2 bg-[#0F0F15] border-b border-pink-500/20 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-1 text-xs font-cinzel text-pink-300">
-          <Eye className="w-3.5 h-3.5 text-pink-400" />
-          <span className="font-semibold">Preview Mode:</span>
+      {/* Desktop Preview Mode Switcher (Hidden on mobile since mobile uses top native switcher) */}
+      <div className="hidden lg:flex px-4 py-2 bg-[#11141C] border-b border-white/10 items-center justify-between shrink-0">
+        <div className="flex items-center gap-1.5 text-xs text-slate-300">
+          <Eye className="w-3.5 h-3.5 text-[#C4B5FD]" />
+          <span className="font-semibold">Preview Frame</span>
         </div>
 
-        <div className="flex items-center bg-black/60 rounded-lg p-0.5 border border-pink-500/25 shadow-inner">
+        <div className="flex items-center bg-[#090B10] rounded-lg p-0.5 border border-white/10">
           <button
             onClick={() => onViewModeChange('split')}
             type="button"
-            className={`flex items-center gap-1 px-2.5 py-1 text-[11px] rounded-md font-semibold transition-all ${
+            className={`flex items-center gap-1 px-2.5 py-1 text-[11px] rounded-md font-semibold transition-all whitespace-nowrap shrink-0 ${
               viewMode === 'split'
-                ? 'bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-[0_0_10px_rgba(236,72,153,0.4)]'
-                : 'text-neutral-400 hover:text-pink-200'
+                ? 'bg-[#7C3AED] text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-100'
             }`}
           >
             <Smartphone className="w-3 h-3" />
-            Mobile Frame
+            <span>Phone Mockup</span>
           </button>
           <button
             onClick={() => onViewModeChange('fullscreen')}
             type="button"
-            className={`flex items-center gap-1 px-2.5 py-1 text-[11px] rounded-md font-semibold transition-all ${
+            className={`flex items-center gap-1 px-2.5 py-1 text-[11px] rounded-md font-semibold transition-all whitespace-nowrap shrink-0 ${
               viewMode === 'fullscreen'
-                ? 'bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-[0_0_10px_rgba(236,72,153,0.4)]'
-                : 'text-neutral-400 hover:text-pink-200'
+                ? 'bg-[#7C3AED] text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-100'
             }`}
           >
             <Maximize2 className="w-3 h-3" />
-            Full Screen
+            <span>Full View</span>
           </button>
         </div>
       </div>
 
-      {/* Professional Step Navigation Tabs */}
-      <div className="flex border-b border-pink-500/20 bg-[#0B0B0F] px-2 overflow-x-auto no-scrollbar shrink-0">
-        <button
-          onClick={() => setActiveTab('couple')}
-          type="button"
-          className={`py-2.5 px-3 text-xs font-bold border-b-2 flex items-center gap-1.5 whitespace-nowrap transition-all ${
-            activeTab === 'couple'
-              ? 'border-pink-500 text-pink-300 bg-pink-950/30 shadow-xs'
-              : 'border-transparent text-neutral-400 hover:text-pink-300'
-          }`}
-        >
-          <span className="w-4 h-4 rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/40 text-[10px] flex items-center justify-center font-bold">
-            1
-          </span>
-          Couple
-        </button>
-
-        <button
-          onClick={() => setActiveTab('venue')}
-          type="button"
-          className={`py-2.5 px-3 text-xs font-bold border-b-2 flex items-center gap-1.5 whitespace-nowrap transition-all ${
-            activeTab === 'venue'
-              ? 'border-pink-500 text-pink-300 bg-pink-950/30 shadow-xs'
-              : 'border-transparent text-neutral-400 hover:text-pink-300'
-          }`}
-        >
-          <span className="w-4 h-4 rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/40 text-[10px] flex items-center justify-center font-bold">
-            2
-          </span>
-          Date &amp; Venue
-        </button>
-
-        <button
-          onClick={() => setActiveTab('ceremonies')}
-          type="button"
-          className={`py-2.5 px-3 text-xs font-bold border-b-2 flex items-center gap-1.5 whitespace-nowrap transition-all ${
-            activeTab === 'ceremonies'
-              ? 'border-pink-500 text-pink-300 bg-pink-950/30 shadow-xs'
-              : 'border-transparent text-neutral-400 hover:text-pink-300'
-          }`}
-        >
-          <span className="w-4 h-4 rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/40 text-[10px] flex items-center justify-center font-bold">
-            3
-          </span>
-          Ceremonies
-        </button>
-
-        <button
-          onClick={() => setActiveTab('photos')}
-          type="button"
-          className={`py-2.5 px-3 text-xs font-bold border-b-2 flex items-center gap-1.5 whitespace-nowrap transition-all ${
-            activeTab === 'photos'
-              ? 'border-pink-500 text-pink-300 bg-pink-950/30 shadow-xs'
-              : 'border-transparent text-neutral-400 hover:text-pink-300'
-          }`}
-        >
-          <span className="w-4 h-4 rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/40 text-[10px] flex items-center justify-center font-bold">
-            4
-          </span>
-          Media Gallery
-        </button>
-
-        <button
-          onClick={() => setActiveTab('presets')}
-          type="button"
-          className={`py-2.5 px-3 text-xs font-bold border-b-2 flex items-center gap-1.5 whitespace-nowrap transition-all ${
-            activeTab === 'presets'
-              ? 'border-pink-500 text-pink-300 bg-pink-950/30 shadow-xs'
-              : 'border-transparent text-neutral-400 hover:text-pink-300'
-          }`}
-        >
-          <span className="w-4 h-4 rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/40 text-[10px] flex items-center justify-center font-bold">
-            5
-          </span>
-          3D Themes
-        </button>
+      {/* Sideways-Scrollable Step Navigation Tabs (Theme FIRST) */}
+      <div className="sticky top-12 lg:static z-20 flex items-center border-b border-white/10 bg-[#12151E]/95 backdrop-blur-md px-2 overflow-x-auto snap-x scroll-smooth no-scrollbar shrink-0">
+        {steps.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              type="button"
+              className={`snap-start py-3 px-3 min-h-[44px] text-xs font-semibold border-b-2 flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-all ${
+                isActive
+                  ? 'border-[#A78BFA] text-white bg-white/[0.04]'
+                  : 'border-transparent text-slate-400 hover:text-slate-100'
+              }`}
+            >
+              <span
+                className={`w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-bold tabular-nums border ${
+                  isActive
+                    ? 'bg-[#7C3AED] text-white border-[#C4B5FD]/60'
+                    : 'bg-[#1C202E] text-slate-400 border-white/10'
+                }`}
+              >
+                {tab.num}
+              </span>
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Main Tab Contents */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#09090D] no-scrollbar">
-        {/* STEP 1: COUPLE (BRIDE & GROOM DETAILS) */}
+      {/* Main Content Area — flows naturally on mobile so user can scroll down cleanly */}
+      <div className="lg:flex-1 lg:overflow-y-auto p-4 space-y-4 bg-[#0D0F14] no-scrollbar">
+        {/* STEP 1 (FIRST): 3D THEMES & PRESETS WITH SIDEWAYS CAROUSEL */}
+        {activeTab === 'presets' && (
+          <div className="space-y-4 animate-in fade-in duration-150">
+            {/* Section Intro + Open 3D Studio CTA */}
+            <div className="bg-[#151822] p-4 rounded-2xl border border-white/10 shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                    <Palette className="w-4 h-4 text-[#C4B5FD]" />
+                    <span>
+                      Choose <span className="text-lavender-highlight">3D Wedding Theme</span>
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Swipe sideways to pick a cultural theme, then tap Next to edit details.
+                  </p>
+                </div>
+                {onOpen3DStudio && (
+                  <button
+                    type="button"
+                    onClick={onOpen3DStudio}
+                    className="px-3 py-1.5 min-h-[36px] rounded-lg bg-[#202536] hover:bg-[#2A3045] border border-purple-400/35 text-[#E9D5FF] text-xs font-semibold shrink-0 whitespace-nowrap transition-colors"
+                  >
+                    3D Card View
+                  </button>
+                )}
+              </div>
+
+              {/* Horizontal Sideways-Scrollable Theme Strip */}
+              <div className="mt-3.5 -mx-1 px-1 flex items-stretch gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar pb-1.5">
+                {WEDDING_PRESETS.map((preset) => {
+                  const isActive =
+                    config.theme?.presetId === preset.id ||
+                    config.groomName.toLowerCase() === preset.groomName.toLowerCase();
+                  return (
+                    <div
+                      key={`strip-${preset.id}`}
+                      onClick={() => {
+                        if (onApplyPreset) onApplyPreset(preset);
+                      }}
+                      className={`snap-start w-[156px] shrink-0 rounded-xl overflow-hidden border cursor-pointer transition-all flex flex-col ${
+                        isActive
+                          ? 'bg-[#1C2030] border-[#A78BFA] ring-1 ring-[#A78BFA]/50 shadow-lg'
+                          : 'bg-[#0F1219] border-white/10 hover:border-white/25'
+                      }`}
+                    >
+                      <div className="relative h-24 w-full overflow-hidden">
+                        <img
+                          src={preset.coverImage}
+                          alt={preset.name}
+                          className="w-full h-full object-cover object-center"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
+                        <span className="absolute bottom-1.5 left-2 text-[11px] font-bold text-amber-300 tabular-nums">
+                          ₹{preset.price.toLocaleString('en-IN')}
+                        </span>
+                        {isActive && (
+                          <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#7C3AED] text-white flex items-center justify-center shadow">
+                            <Check className="w-3 h-3 stroke-[3]" />
+                          </span>
+                        )}
+                      </div>
+                      <div className="p-2.5 flex-1 flex flex-col justify-between">
+                        <div>
+                          <p className="text-[10px] text-[#C4B5FD] font-semibold truncate">
+                            {preset.culturalTheme}
+                          </p>
+                          <h4 className="text-xs font-bold text-white leading-snug line-clamp-1 mt-0.5">
+                            {preset.name}
+                          </h4>
+                        </div>
+                        <span className="mt-2 text-[10px] font-semibold text-slate-300 flex items-center justify-between">
+                          <span>{isActive ? 'Active Theme' : 'Tap to Apply'}</span>
+                          <ChevronRight className="w-3 h-3 text-[#C4B5FD]" />
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Detailed Vertical Theme Cards (for clear mobile scroll-down reading & direct purchase) */}
+            <div className="space-y-3">
+              {WEDDING_PRESETS.map((preset) => {
+                const isActive =
+                  config.theme?.presetId === preset.id ||
+                  config.groomName.toLowerCase() === preset.groomName.toLowerCase();
+                return (
+                  <div
+                    key={preset.id}
+                    className={`p-3 rounded-2xl border transition-all ${
+                      isActive
+                        ? 'bg-[#191D2A] border-[#A78BFA]/70 ring-1 ring-[#A78BFA]/30 shadow-md'
+                        : 'bg-[#151822] border-white/10 hover:border-white/25 shadow-xs'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="relative w-16 h-22 rounded-xl overflow-hidden shrink-0 border border-white/15 shadow-md">
+                        <img
+                          src={preset.coverImage}
+                          alt={preset.name}
+                          className="w-full h-full object-cover object-center"
+                        />
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="text-[10px] font-semibold text-[#C4B5FD] uppercase tracking-wider truncate">
+                            {preset.badge}
+                          </span>
+                          <span className="text-xs font-bold text-amber-300 tabular-nums shrink-0">
+                            ₹{preset.price.toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                        <h4 className="text-sm font-bold text-white leading-tight">{preset.name}</h4>
+                        <p className="text-[11px] text-slate-300 mt-0.5 line-clamp-1 italic">
+                          {preset.subtitle}
+                        </p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          {preset.culturalTheme} &middot; {preset.venueCity}
+                        </p>
+
+                        <div className="mt-2.5 flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (onApplyPreset) {
+                                onApplyPreset(preset);
+                              }
+                            }}
+                            className={`flex-1 min-h-[38px] py-1.5 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1 transition-all whitespace-nowrap ${
+                              isActive
+                                ? 'bg-[#7C3AED] text-white shadow-xs'
+                                : 'bg-[#1F2433] hover:bg-[#282E42] text-slate-100 border border-white/10 active:scale-95'
+                            }`}
+                          >
+                            {isActive ? (
+                              <>
+                                <CheckCircle2 className="w-3.5 h-3.5 text-[#E9D5FF]" />
+                                <span>Active</span>
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="w-3.5 h-3.5 text-[#C4B5FD]" />
+                                <span>Apply Theme</span>
+                              </>
+                            )}
+                          </button>
+
+                          {onOpenPayment && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (onApplyPreset) onApplyPreset(preset);
+                                onOpenPayment(preset.price);
+                              }}
+                              className="min-h-[38px] py-1.5 px-3 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-neutral-950 flex items-center gap-1 shrink-0 whitespace-nowrap shadow-sm transition-all tabular-nums active:scale-95"
+                              title={`Buy & Publish ${preset.name} (₹${preset.price})`}
+                            >
+                              <span>Buy ₹{preset.price.toLocaleString('en-IN')}</span>
+                            </button>
+                          )}
+
+                          {onOpen3DStudio && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (onApplyPreset) onApplyPreset(preset);
+                                onOpen3DStudio();
+                              }}
+                              className="min-h-[38px] py-1.5 px-2.5 rounded-xl bg-[#0F1219] hover:bg-[#191E2A] text-slate-200 text-xs font-semibold border border-white/10 whitespace-nowrap shrink-0"
+                            >
+                              3D
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Continue to Step 2 Button */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('couple')}
+              className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-[#191D2A] hover:bg-[#222738] border border-white/12 text-slate-100 text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
+            >
+              <span>Next: Customize Couple Names</span>
+              <ArrowRight className="w-4 h-4 text-[#C4B5FD]" />
+            </button>
+          </div>
+        )}
+
+        {/* STEP 2: COUPLE DETAILS */}
         {activeTab === 'couple' && (
           <div className="space-y-4 animate-in fade-in duration-150">
-            {/* Professional Section Card */}
-            <div className="bg-[#121218] p-4 rounded-2xl border border-pink-500/25 shadow-md space-y-3.5">
-              <div className="flex items-center gap-2 border-b border-pink-500/20 pb-2">
-                <span className="p-1.5 rounded-lg bg-pink-950/60 text-pink-400 border border-pink-500/30">
-                  <Heart className="w-4 h-4 fill-pink-500 text-pink-500" />
+            <div className="bg-[#151822] p-4 rounded-2xl border border-white/10 shadow-md space-y-3.5">
+              <div className="flex items-center gap-2.5 border-b border-white/10 pb-2.5">
+                <span className="p-1.5 rounded-lg bg-[#1F2433] text-[#C4B5FD] border border-white/10">
+                  <Heart className="w-4 h-4 fill-[#A78BFA] text-[#C4B5FD]" />
                 </span>
                 <div>
-                  <h3 className="font-classic text-sm font-bold text-pink-100">
-                    Bride &amp; Groom Profiles
+                  <h3 className="text-sm font-bold text-white">
+                    <span className="text-lavender-highlight">Bride &amp; Groom</span> Profiles
                   </h3>
-                  <p className="text-[11px] text-neutral-400">
-                    Names are displayed on the 3D royal scroll, mandap, and gold foil card
+                  <p className="text-[11px] text-slate-400">
+                    Names appear across the 3D scroll, mandap, and gold foil gatefold card
                   </p>
                 </div>
               </div>
 
-              {/* Groom Input */}
               <div>
-                <label className="block text-xs font-cinzel font-bold text-pink-200 mb-1 flex items-center justify-between">
+                <label className="block text-xs font-semibold text-slate-200 mb-1 flex items-center justify-between">
                   <span>Groom&apos;s Full Name *</span>
-                  <span className="text-[10px] text-pink-400 font-normal">Royal Groom</span>
+                  <span className="text-[10px] text-[#C4B5FD] font-medium">Royal Groom</span>
                 </label>
-                <div className="relative">
-                  <input
-                    id="groom-name-input"
-                    type="text"
-                    value={config.groomName}
-                    onChange={(e) => handleTextChange('groomName', e.target.value)}
-                    placeholder="e.g. Pulkit"
-                    className="w-full bg-[#08080C] border border-pink-500/30 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/25 rounded-xl px-3.5 py-2 text-sm font-semibold text-pink-50 placeholder:text-neutral-500 outline-none transition-all shadow-inner"
-                  />
-                  <span className="absolute right-3 top-2.5 text-xs text-pink-400">👑</span>
-                </div>
+                <input
+                  id="groom-name-input"
+                  type="text"
+                  value={config.groomName}
+                  onChange={(e) => handleTextChange('groomName', e.target.value)}
+                  placeholder="e.g. Pulkit"
+                  className="w-full bg-[#0D0F14] border border-white/15 focus:border-[#A78BFA] focus:ring-2 focus:ring-[#7C3AED]/25 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-white placeholder:text-slate-500 outline-none transition-all"
+                />
               </div>
 
-              {/* Bride Input */}
               <div>
-                <label className="block text-xs font-cinzel font-bold text-pink-200 mb-1 flex items-center justify-between">
+                <label className="block text-xs font-semibold text-slate-200 mb-1 flex items-center justify-between">
                   <span>Bride&apos;s Full Name *</span>
-                  <span className="text-[10px] text-pink-400 font-normal">Royal Bride</span>
+                  <span className="text-[10px] text-[#C4B5FD] font-medium">Royal Bride</span>
                 </label>
-                <div className="relative">
-                  <input
-                    id="bride-name-input"
-                    type="text"
-                    value={config.brideName}
-                    onChange={(e) => handleTextChange('brideName', e.target.value)}
-                    placeholder="e.g. Shreya"
-                    className="w-full bg-[#08080C] border border-pink-500/30 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/25 rounded-xl px-3.5 py-2 text-sm font-semibold text-pink-50 placeholder:text-neutral-500 outline-none transition-all shadow-inner"
-                  />
-                  <span className="absolute right-3 top-2.5 text-xs text-pink-400">🪷</span>
-                </div>
+                <input
+                  id="bride-name-input"
+                  type="text"
+                  value={config.brideName}
+                  onChange={(e) => handleTextChange('brideName', e.target.value)}
+                  placeholder="e.g. Shreya"
+                  className="w-full bg-[#0D0F14] border border-white/15 focus:border-[#A78BFA] focus:ring-2 focus:ring-[#7C3AED]/25 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-white placeholder:text-slate-500 outline-none transition-all"
+                />
               </div>
 
-              {/* Hashtag & Monogram Grid */}
               <div className="grid grid-cols-2 gap-3 pt-1">
                 <div>
-                  <label className="block text-xs font-cinzel font-bold text-pink-200 mb-1">
+                  <label className="block text-xs font-semibold text-slate-200 mb-1">
                     Wedding Hashtag
                   </label>
                   <input
@@ -487,12 +649,12 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                     value={config.hashtag}
                     onChange={(e) => handleTextChange('hashtag', e.target.value)}
                     placeholder="#PulkitWedsShreya"
-                    className="w-full bg-[#08080C] border border-pink-500/30 focus:border-pink-500 rounded-xl px-3 py-1.5 text-xs font-medium text-pink-100 outline-none"
+                    className="w-full bg-[#0D0F14] border border-white/15 focus:border-[#A78BFA] rounded-xl px-3 py-2 text-xs font-medium text-slate-100 placeholder:text-slate-500 outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-cinzel font-bold text-pink-200 mb-1">
+                  <label className="block text-xs font-semibold text-slate-200 mb-1">
                     Royal Monogram
                   </label>
                   <input
@@ -502,14 +664,13 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                     value={config.monogramText}
                     onChange={(e) => handleTextChange('monogramText', e.target.value.toUpperCase())}
                     placeholder="PS"
-                    className="w-full bg-[#08080C] border border-pink-500/30 focus:border-pink-500 rounded-xl px-3 py-1.5 text-xs font-bold text-pink-300 uppercase text-center outline-none"
+                    className="w-full bg-[#0D0F14] border border-white/15 focus:border-[#A78BFA] rounded-xl px-3 py-2 text-xs font-bold text-[#E9D5FF] uppercase text-center outline-none"
                   />
                 </div>
               </div>
 
-              {/* Welcome Blessing Note */}
               <div className="pt-1">
-                <label className="block text-xs font-cinzel font-bold text-pink-200 mb-1">
+                <label className="block text-xs font-semibold text-slate-200 mb-1">
                   Welcome Blessing / Message
                 </label>
                 <textarea
@@ -517,43 +678,50 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                   value={config.welcomeMessage}
                   onChange={(e) => handleTextChange('welcomeMessage', e.target.value)}
                   placeholder="With the celestial blessings of our elders..."
-                  className="w-full bg-[#08080C] border border-pink-500/30 focus:border-pink-500 rounded-xl p-2.5 text-xs text-pink-100 outline-none resize-none leading-relaxed"
+                  className="w-full bg-[#0D0F14] border border-white/15 focus:border-[#A78BFA] rounded-xl p-2.5 text-xs text-slate-100 placeholder:text-slate-500 outline-none resize-none leading-relaxed"
                 />
               </div>
             </div>
 
-            {/* Quick Helper Banner */}
-            <div className="p-3 bg-pink-950/30 rounded-xl border border-pink-500/30 flex items-start gap-2.5 text-xs text-pink-200">
-              <Sparkles className="w-4 h-4 text-pink-400 shrink-0 mt-0.5" />
-              <p>
-                <strong>Tip:</strong> Changing couple names automatically synchronizes your royal monogram and hashtag across all 3D scenes.
-              </p>
-            </div>
+            {/* Live Preview shown right at the end of the Couple section */}
+            <CoupleEndPreview
+              config={config}
+              onOpenFullPreview={handleTriggerViewWebsite}
+              onGoToPay={() => setActiveTab('pay')}
+            />
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('venue')}
+              className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-[#191D2A] hover:bg-[#222738] border border-white/12 text-slate-100 text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
+            >
+              <span>Next: Date &amp; Venue</span>
+              <ArrowRight className="w-4 h-4 text-[#C4B5FD]" />
+            </button>
           </div>
         )}
 
-        {/* STEP 2: DATE & VENUE */}
+        {/* STEP 3: DATE & VENUE */}
         {activeTab === 'venue' && (
           <div className="space-y-4 animate-in fade-in duration-150">
-            <div className="bg-[#121218] p-4 rounded-2xl border border-pink-500/25 shadow-md space-y-3.5">
-              <div className="flex items-center gap-2 border-b border-pink-500/20 pb-2">
-                <span className="p-1.5 rounded-lg bg-pink-950/60 text-pink-400 border border-pink-500/30">
-                  <Calendar className="w-4 h-4 text-pink-400" />
+            <div className="bg-[#151822] p-4 rounded-2xl border border-white/10 shadow-md space-y-3.5">
+              <div className="flex items-center gap-2.5 border-b border-white/10 pb-2.5">
+                <span className="p-1.5 rounded-lg bg-[#1F2433] text-[#C4B5FD] border border-white/10">
+                  <Calendar className="w-4 h-4" />
                 </span>
                 <div>
-                  <h3 className="font-classic text-sm font-bold text-pink-100">
-                    Wedding Date &amp; Venue Details
+                  <h3 className="text-sm font-bold text-white">
+                    <span className="text-lavender-highlight">Wedding Date</span> &amp; Venue
                   </h3>
-                  <p className="text-[11px] text-neutral-400">
-                    Set the auspicious date, muhurtham ceremony time, and grand palace location
+                  <p className="text-[11px] text-slate-400">
+                    Set the auspicious date, ceremony time, and celebration venue
                   </p>
                 </div>
               </div>
 
-              {/* Date & Time Grid */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-cinzel font-bold text-pink-200 mb-1">
+                  <label className="block text-xs font-semibold text-slate-200 mb-1">
                     Wedding Date *
                   </label>
                   <input
@@ -561,15 +729,15 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                     type="date"
                     value={config.weddingDate}
                     onChange={(e) => handleDateChange(e.target.value)}
-                    className="w-full bg-[#08080C] border border-pink-500/30 focus:border-pink-500 rounded-xl px-3 py-2 text-xs font-semibold text-pink-100 outline-none"
+                    className="w-full bg-[#0D0F14] border border-white/15 focus:border-[#A78BFA] rounded-xl px-3 py-2 text-xs font-semibold text-white outline-none"
                   />
-                  <p className="text-[10px] text-pink-300 font-medium mt-1">
+                  <p className="text-[10px] text-[#C4B5FD] font-medium mt-1">
                     {config.weddingDateFormatted}
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-cinzel font-bold text-pink-200 mb-1">
+                  <label className="block text-xs font-semibold text-slate-200 mb-1">
                     Ceremony Time *
                   </label>
                   <input
@@ -578,16 +746,15 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                     value={config.weddingTime}
                     onChange={(e) => handleTextChange('weddingTime', e.target.value)}
                     placeholder="e.g. 07:00 PM onwards"
-                    className="w-full bg-[#08080C] border border-pink-500/30 focus:border-pink-500 rounded-xl px-3 py-2 text-xs font-semibold text-pink-100 outline-none"
+                    className="w-full bg-[#0D0F14] border border-white/15 focus:border-[#A78BFA] rounded-xl px-3 py-2 text-xs font-semibold text-white outline-none"
                   />
                 </div>
               </div>
 
-              {/* Venue Name */}
               <div>
-                <label className="block text-xs font-cinzel font-bold text-pink-200 mb-1 flex items-center justify-between">
+                <label className="block text-xs font-semibold text-slate-200 mb-1 flex items-center justify-between">
                   <span>Palace / Resort Venue *</span>
-                  <span className="text-[10px] text-pink-400">Palace / Resort</span>
+                  <span className="text-[10px] text-[#C4B5FD]">Location</span>
                 </label>
                 <div className="relative">
                   <input
@@ -596,16 +763,15 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                     value={config.venueName}
                     onChange={(e) => handleTextChange('venueName', e.target.value)}
                     placeholder="e.g. The Oberoi Rajvilas Palace"
-                    className="w-full bg-[#08080C] border border-pink-500/30 focus:border-pink-500 rounded-xl px-3 py-2 text-sm font-semibold text-pink-100 outline-none shadow-inner"
+                    className="w-full bg-[#0D0F14] border border-white/15 focus:border-[#A78BFA] rounded-xl pl-3 pr-9 py-2 text-sm font-semibold text-white outline-none"
                   />
-                  <MapPin className="w-4 h-4 text-pink-400 absolute right-3 top-2.5" />
+                  <MapPin className="w-4 h-4 text-[#C4B5FD] absolute right-3 top-2.5" />
                 </div>
               </div>
 
-              {/* City & Address */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-cinzel font-bold text-pink-200 mb-1">
+                  <label className="block text-xs font-semibold text-slate-200 mb-1">
                     City, State *
                   </label>
                   <input
@@ -614,12 +780,12 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                     value={config.venueCity}
                     onChange={(e) => handleTextChange('venueCity', e.target.value)}
                     placeholder="e.g. Jaipur, Rajasthan"
-                    className="w-full bg-[#08080C] border border-pink-500/30 focus:border-pink-500 rounded-xl px-3 py-1.5 text-xs font-medium text-pink-100 outline-none"
+                    className="w-full bg-[#0D0F14] border border-white/15 focus:border-[#A78BFA] rounded-xl px-3 py-2 text-xs font-medium text-white outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-cinzel font-bold text-pink-200 mb-1">
+                  <label className="block text-xs font-semibold text-slate-200 mb-1">
                     Google Maps Link
                   </label>
                   <input
@@ -628,13 +794,13 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                     value={config.googleMapsUrl}
                     onChange={(e) => handleTextChange('googleMapsUrl', e.target.value)}
                     placeholder="https://maps.google.com/..."
-                    className="w-full bg-[#08080C] border border-pink-500/30 focus:border-pink-500 rounded-xl px-3 py-1.5 text-xs text-pink-200 outline-none truncate"
+                    className="w-full bg-[#0D0F14] border border-white/15 focus:border-[#A78BFA] rounded-xl px-3 py-2 text-xs text-slate-200 outline-none truncate"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-cinzel font-bold text-pink-200 mb-1">
+                <label className="block text-xs font-semibold text-slate-200 mb-1">
                   Street Address
                 </label>
                 <input
@@ -643,25 +809,36 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                   value={config.venueAddress}
                   onChange={(e) => handleTextChange('venueAddress', e.target.value)}
                   placeholder="e.g. Goner Road, Jagatpura, Jaipur, Rajasthan 302031"
-                  className="w-full bg-[#08080C] border border-pink-500/30 focus:border-pink-500 rounded-xl px-3 py-1.5 text-xs text-pink-200 outline-none"
+                  className="w-full bg-[#0D0F14] border border-white/15 focus:border-[#A78BFA] rounded-xl px-3 py-2 text-xs text-slate-200 outline-none"
                 />
               </div>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('ceremonies')}
+              className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-[#191D2A] hover:bg-[#222738] border border-white/12 text-slate-100 text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
+            >
+              <span>Next: Ceremonies Itinerary</span>
+              <ArrowRight className="w-4 h-4 text-[#C4B5FD]" />
+            </button>
           </div>
         )}
 
-        {/* STEP 3: CEREMONIES (EVENTS & ITINERARY) */}
+        {/* STEP 4: CEREMONIES */}
         {activeTab === 'ceremonies' && (
           <div className="space-y-4 animate-in fade-in duration-150">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <div>
-                <h3 className="font-classic text-sm font-bold text-pink-100 flex items-center gap-1.5">
-                  <span>Wedding Ceremonies Itinerary</span>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-pink-950/60 text-pink-300 border border-pink-500/30 font-mono">
-                    {config.events.length} Events
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <span>
+                    <span className="text-lavender-highlight">Ceremonies</span> Itinerary
+                  </span>
+                  <span className="text-xs font-semibold text-slate-400 tabular-nums">
+                    &middot; {config.events.length} Events
                   </span>
                 </h3>
-                <p className="text-[11px] text-neutral-400">
+                <p className="text-[11px] text-slate-400">
                   Haldi, Mehendi, Sangeeth, Vivaha &amp; Reception 3D sections
                 </p>
               </div>
@@ -670,36 +847,34 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                 id="add-ceremony-btn"
                 onClick={handleAddEvent}
                 type="button"
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white text-xs font-cinzel font-bold shadow-[0_0_12px_rgba(236,72,153,0.3)] transition-transform active:scale-95"
+                className="flex items-center gap-1 px-3 py-2 min-h-[38px] rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-semibold shadow-sm transition-transform whitespace-nowrap shrink-0 active:scale-95"
               >
                 <Plus className="w-3.5 h-3.5" />
-                + Add Ceremony
+                <span>Add Ceremony</span>
               </button>
             </div>
 
-            {/* Events List */}
             <div className="space-y-3">
               {config.events.map((evt, idx) => (
                 <div
                   key={evt.id}
-                  className="bg-[#121218] p-3.5 rounded-2xl border border-pink-500/25 shadow-sm space-y-2.5 relative"
+                  className="bg-[#151822] p-3.5 rounded-2xl border border-white/10 shadow-sm space-y-2.5 relative"
                 >
-                  <div className="flex items-center justify-between border-b border-pink-500/20 pb-1.5">
-                    <span className="text-[10px] font-cinzel font-bold text-pink-200 bg-pink-950/60 px-2 py-0.5 rounded-md border border-pink-500/30 flex items-center gap-1">
-                      <Flame className="w-3 h-3 text-pink-400" />
+                  <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
+                    <span className="text-[11px] font-bold text-[#DDD6FE] flex items-center gap-1.5 tabular-nums">
+                      <Flame className="w-3.5 h-3.5 text-amber-400" />
                       Ceremony #{idx + 1}
                     </span>
                     <button
                       onClick={() => handleDeleteEvent(evt.id)}
                       type="button"
                       aria-label="Delete ceremony"
-                      className="text-neutral-500 hover:text-rose-400 p-1 transition-colors"
+                      className="text-slate-400 hover:text-rose-400 p-1.5 transition-colors"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
-                  {/* Title */}
                   <input
                     type="text"
                     value={evt.title}
@@ -709,11 +884,10 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                       );
                       onChange({ ...config, events: updated });
                     }}
-                    placeholder="Ceremony Title (e.g. Royal Sangeeth & Musical Celebration)"
-                    className="w-full bg-[#08080C] border border-pink-500/30 focus:border-pink-500 rounded-xl px-3 py-1.5 text-xs font-bold text-pink-100 outline-none"
+                    placeholder="Ceremony Title"
+                    className="w-full bg-[#0D0F14] border border-white/15 focus:border-[#A78BFA] rounded-xl px-3 py-2 text-xs font-bold text-white outline-none"
                   />
 
-                  {/* Date & Time */}
                   <div className="grid grid-cols-2 gap-2">
                     <input
                       type="text"
@@ -724,8 +898,8 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                         );
                         onChange({ ...config, events: updated });
                       }}
-                      placeholder="Date (e.g. 13 Dec 2026)"
-                      className="w-full bg-[#08080C] border border-pink-500/30 focus:border-pink-500 rounded-xl px-2.5 py-1 text-xs text-pink-200 outline-none"
+                      placeholder="Date"
+                      className="w-full bg-[#0D0F14] border border-white/15 focus:border-[#A78BFA] rounded-xl px-2.5 py-1.5 text-xs text-slate-200 outline-none"
                     />
                     <input
                       type="text"
@@ -736,12 +910,11 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                         );
                         onChange({ ...config, events: updated });
                       }}
-                      placeholder="Time (e.g. 06:30 PM)"
-                      className="w-full bg-[#08080C] border border-pink-500/30 focus:border-pink-500 rounded-xl px-2.5 py-1 text-xs text-pink-200 outline-none"
+                      placeholder="Time"
+                      className="w-full bg-[#0D0F14] border border-white/15 focus:border-[#A78BFA] rounded-xl px-2.5 py-1.5 text-xs text-slate-200 outline-none"
                     />
                   </div>
 
-                  {/* Specific Venue & Dress Code */}
                   <div className="grid grid-cols-2 gap-2">
                     <input
                       type="text"
@@ -752,8 +925,8 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                         );
                         onChange({ ...config, events: updated });
                       }}
-                      placeholder="Hall / Lawn (e.g. Royal Courtyard)"
-                      className="w-full bg-[#08080C] border border-pink-500/30 focus:border-pink-500 rounded-xl px-2.5 py-1 text-xs text-pink-200 outline-none"
+                      placeholder="Hall / Lawn"
+                      className="w-full bg-[#0D0F14] border border-white/15 focus:border-[#A78BFA] rounded-xl px-2.5 py-1.5 text-xs text-slate-200 outline-none"
                     />
                     <input
                       type="text"
@@ -764,15 +937,15 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                         );
                         onChange({ ...config, events: updated });
                       }}
-                      placeholder="Dress Code (e.g. Royal Ethnic)"
-                      className="w-full bg-[#08080C] border border-pink-500/30 focus:border-pink-500 rounded-xl px-2.5 py-1 text-xs text-pink-300 font-medium outline-none"
+                      placeholder="Dress Code"
+                      className="w-full bg-[#0D0F14] border border-white/15 focus:border-[#A78BFA] rounded-xl px-2.5 py-1.5 text-xs text-[#C4B5FD] font-medium outline-none"
                     />
                   </div>
 
                   {/* 3D Section Background Image & Blessings Config */}
-                  <div className="pt-1.5 border-t border-pink-500/20 space-y-1.5">
+                  <div className="pt-1.5 border-t border-white/10 space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-cinzel font-bold text-pink-300 uppercase">
+                      <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">
                         Ceremony 3D Background
                       </span>
                       <button
@@ -781,14 +954,13 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                           const el = document.getElementById(`ceremony-section-${evt.id}`);
                           if (el) el.scrollIntoView({ behavior: 'smooth' });
                         }}
-                        className="text-[10px] font-cinzel font-bold text-pink-400 hover:text-pink-300 underline flex items-center gap-1"
+                        className="text-[10px] font-semibold text-[#C4B5FD] hover:text-white underline flex items-center gap-1"
                       >
                         <Sparkles className="w-2.5 h-2.5" />
-                        Preview 3D Section
+                        <span>Preview 3D Section</span>
                       </button>
                     </div>
 
-                    {/* Quick 1-click Preset Backgrounds */}
                     <div className="grid grid-cols-5 gap-1 pt-0.5">
                       <button
                         type="button"
@@ -798,10 +970,10 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                           );
                           onChange({ ...config, events: updated });
                         }}
-                        className="p-1 rounded-lg border border-amber-500/50 bg-[#1A1508] hover:bg-[#28200A] text-[9px] font-bold text-amber-300 truncate"
+                        className="p-1.5 rounded-lg border border-amber-500/40 bg-[#1A1508] hover:bg-[#28200A] text-[10px] font-bold text-amber-300 truncate"
                         title="Set Haldi Background"
                       >
-                        🟡 Haldi
+                        Haldi
                       </button>
                       <button
                         type="button"
@@ -811,10 +983,10 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                           );
                           onChange({ ...config, events: updated });
                         }}
-                        className="p-1 rounded-lg border border-emerald-500/50 bg-[#0A1A10] hover:bg-[#0E2818] text-[9px] font-bold text-emerald-300 truncate"
+                        className="p-1.5 rounded-lg border border-emerald-500/40 bg-[#0A1A10] hover:bg-[#0E2818] text-[10px] font-bold text-emerald-300 truncate"
                         title="Set Mehendi Background"
                       >
-                        🟢 Mehendi
+                        Mehendi
                       </button>
                       <button
                         type="button"
@@ -824,10 +996,10 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                           );
                           onChange({ ...config, events: updated });
                         }}
-                        className="p-1 rounded-lg border border-purple-500/50 bg-[#180A22] hover:bg-[#240E34] text-[9px] font-bold text-purple-300 truncate"
+                        className="p-1.5 rounded-lg border border-purple-500/40 bg-[#180A22] hover:bg-[#240E34] text-[10px] font-bold text-purple-300 truncate"
                         title="Set Sangeeth Background"
                       >
-                        🟣 Sangeeth
+                        Sangeeth
                       </button>
                       <button
                         type="button"
@@ -837,10 +1009,10 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                           );
                           onChange({ ...config, events: updated });
                         }}
-                        className="p-1 rounded-lg border border-rose-500/50 bg-[#200A10] hover:bg-[#300E18] text-[9px] font-bold text-rose-300 truncate"
+                        className="p-1.5 rounded-lg border border-rose-500/40 bg-[#200A10] hover:bg-[#300E18] text-[10px] font-bold text-rose-300 truncate"
                         title="Set Vivaha Background"
                       >
-                        🔴 Vivaha
+                        Vivaha
                       </button>
                       <button
                         type="button"
@@ -850,16 +1022,15 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                           );
                           onChange({ ...config, events: updated });
                         }}
-                        className="p-1 rounded-lg border border-pink-500/50 bg-[#200A1A] hover:bg-[#300E26] text-[9px] font-bold text-pink-300 truncate"
+                        className="p-1.5 rounded-lg border border-slate-500/40 bg-[#1A1D28] hover:bg-[#262B3B] text-[10px] font-bold text-slate-200 truncate"
                         title="Set Reception Background"
                       >
-                        ⚪ Reception
+                        Reception
                       </button>
                     </div>
 
-                    {/* Live Blessing Count */}
                     <div className="flex items-center justify-between pt-1 text-[10px]">
-                      <span className="font-cinzel text-neutral-300 font-medium">Blessing Count:</span>
+                      <span className="text-slate-400 font-medium">Blessing Count:</span>
                       <div className="flex items-center gap-1.5">
                         <input
                           type="number"
@@ -872,53 +1043,62 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                             localStorage.setItem(`wedding_blessings_${evt.id}`, val.toString());
                             onChange({ ...config, events: updated });
                           }}
-                          className="w-16 bg-[#08080C] border border-pink-500/30 focus:border-pink-500 rounded-lg px-2 py-0.5 text-right font-mono font-bold text-xs text-pink-200 outline-none"
+                          className="w-16 bg-[#0D0F14] border border-white/15 focus:border-[#A78BFA] rounded-lg px-2 py-0.5 text-right font-semibold tabular-nums text-xs text-white outline-none"
                         />
-                        <span className="text-neutral-400">blessings</span>
+                        <span className="text-slate-400">blessings</span>
                       </div>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('photos')}
+              className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-[#191D2A] hover:bg-[#222738] border border-white/12 text-slate-100 text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
+            >
+              <span>Next: Media Gallery</span>
+              <ArrowRight className="w-4 h-4 text-[#C4B5FD]" />
+            </button>
           </div>
         )}
 
-        {/* STEP 4: MEDIA GALLERY */}
+        {/* STEP 5: MEDIA GALLERY */}
         {activeTab === 'photos' && (
           <div className="space-y-4 animate-in fade-in duration-150">
-            {/* Theme Artwork Collection Selector */}
-            <div className="bg-gradient-to-br from-[#200414] via-[#10010A] to-[#080005] p-4 rounded-2xl text-white border border-pink-500/40 shadow-sm space-y-3">
+            <div className="bg-[#151822] p-4 rounded-2xl text-white border border-white/10 shadow-sm space-y-3">
               <div>
-                <h3 className="font-cinzel text-xs font-bold text-pink-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-pink-400" />
-                  Wedding Artwork &amp; Ceremony Photos
+                <h3 className="text-xs font-bold text-[#E9D5FF] uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-[#C4B5FD]" />
+                  <span>Wedding Artwork &amp; Ceremony Photos</span>
                 </h3>
-                <p className="text-[11px] text-neutral-300 mt-0.5">
-                  Curated photos matching your theme. Tap Hero, Scratch, or +Gallery to assign.
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Swipe sideways or scroll to assign Hero, Scratch, or Gallery photos.
                 </p>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 pt-1 max-h-56 overflow-y-auto pr-1 no-scrollbar">
+              {/* Horizontal sideways-scrollable photo picker on mobile + grid */}
+              <div className="flex sm:grid sm:grid-cols-3 gap-2.5 pt-1 overflow-x-auto sm:overflow-y-auto sm:max-h-56 snap-x no-scrollbar pb-1">
                 {THEME_PHOTO_LIBRARY.map((item) => (
                   <div
                     key={item.id}
-                    className="group relative rounded-xl overflow-hidden border border-pink-500/30 bg-black/60 flex flex-col"
+                    className="snap-start w-[132px] sm:w-auto shrink-0 group relative rounded-xl overflow-hidden border border-white/12 bg-[#0D0F14] flex flex-col"
                   >
-                    <div className="relative w-full h-18 overflow-hidden">
+                    <div className="relative w-full h-20 sm:h-18 overflow-hidden">
                       <img
                         src={item.url}
                         alt={item.name}
                         className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-200"
                       />
-                      <span className="absolute bottom-1 left-1 text-[8px] font-bold px-1 py-0.2 rounded bg-black/80 text-pink-300">
+                      <span className="absolute bottom-1 left-1 text-[8px] font-bold px-1.5 py-0.5 rounded bg-black/80 text-slate-200">
                         {item.category}
                       </span>
                     </div>
-                    <p className="text-[9px] font-medium text-neutral-200 p-1 truncate leading-tight">
+                    <p className="text-[10px] font-medium text-slate-200 p-1.5 truncate leading-tight">
                       {item.name}
                     </p>
-                    <div className="p-1 pt-0 flex items-center gap-1">
+                    <div className="p-1.5 pt-0 flex items-center gap-1">
                       <button
                         type="button"
                         title="Set as Hero Couple Portrait"
@@ -926,7 +1106,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                           onChange({ ...config, heroCouplePhoto: item.url });
                           weddingAudio.playBlessingChime();
                         }}
-                        className="flex-1 py-0.5 text-[8px] font-semibold bg-pink-600 hover:bg-pink-500 text-white rounded transition-colors text-center"
+                        className="flex-1 py-1 text-[9px] font-semibold bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded transition-colors text-center"
                       >
                         Hero
                       </button>
@@ -941,7 +1121,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                           });
                           weddingAudio.playBlessingChime();
                         }}
-                        className="flex-1 py-0.5 text-[8px] font-semibold bg-amber-600 hover:bg-amber-500 text-white rounded transition-colors text-center"
+                        className="flex-1 py-1 text-[9px] font-semibold bg-amber-500 hover:bg-amber-400 text-neutral-950 rounded transition-colors text-center"
                       >
                         Scratch
                       </button>
@@ -961,9 +1141,9 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                           });
                           weddingAudio.playBlessingChime();
                         }}
-                        className="flex-1 py-0.5 text-[8px] font-bold bg-pink-500/30 hover:bg-pink-500/50 text-pink-200 rounded transition-colors text-center"
+                        className="flex-1 py-1 text-[9px] font-bold bg-[#1F2433] hover:bg-[#2A3045] text-slate-100 rounded transition-colors text-center border border-white/10"
                       >
-                        + Gallery
+                        +Add
                       </button>
                     </div>
                   </div>
@@ -972,20 +1152,20 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
             </div>
 
             {/* Hero Couple Photo */}
-            <div className="bg-[#121218] p-4 rounded-2xl border border-pink-500/25 shadow-sm space-y-3">
-              <div className="flex items-center justify-between border-b border-pink-500/20 pb-2">
+            <div className="bg-[#151822] p-4 rounded-2xl border border-white/10 shadow-sm space-y-3">
+              <div className="flex items-center justify-between border-b border-white/10 pb-2">
                 <div>
-                  <h3 className="font-classic text-sm font-bold text-pink-100 flex items-center gap-1.5">
-                    <Camera className="w-4 h-4 text-pink-400" />
-                    Hero Couple Portrait
+                  <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                    <Camera className="w-4 h-4 text-[#C4B5FD]" />
+                    <span>Hero Couple Portrait</span>
                   </h3>
-                  <p className="text-[11px] text-neutral-400">
+                  <p className="text-[11px] text-slate-400">
                     Featured on the royal scroll unfurl and welcoming section
                   </p>
                 </div>
-                <label className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-pink-600 hover:bg-pink-500 text-white text-xs font-semibold cursor-pointer transition-colors shadow-xs">
+                <label className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-semibold cursor-pointer transition-colors shadow-xs whitespace-nowrap shrink-0">
                   <Upload className="w-3 h-3" />
-                  Replace
+                  <span>Replace</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -995,7 +1175,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                 </label>
               </div>
 
-              <div className="relative w-full h-40 rounded-xl overflow-hidden border border-pink-500/30 shadow-md">
+              <div className="relative w-full h-40 rounded-xl overflow-hidden border border-white/15 shadow-md">
                 <img
                   src={config.heroCouplePhoto}
                   alt="Couple Hero"
@@ -1004,21 +1184,21 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
               </div>
             </div>
 
-            {/* Scratch-to-Reveal Keepsake & Gatefold Section */}
-            <div className="bg-[#121218] p-4 rounded-2xl border border-amber-500/30 shadow-sm space-y-3">
-              <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
+            {/* Scratch-to-Reveal Keepsake */}
+            <div className="bg-[#151822] p-4 rounded-2xl border border-white/10 shadow-sm space-y-3">
+              <div className="flex items-center justify-between border-b border-white/10 pb-2">
                 <div>
-                  <h3 className="font-classic text-sm font-bold text-amber-200 flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-amber-400" />
-                    Scratch Keepsake &amp; Gatefold Photo
+                  <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-amber-300" />
+                    <span>Scratch Keepsake &amp; Gatefold Photo</span>
                   </h3>
-                  <p className="text-[11px] text-neutral-400">
-                    The intimate ritual photo revealed under the ceremonial gold foil
+                  <p className="text-[11px] text-slate-400">
+                    Intimate ritual photo revealed under the ceremonial foil
                   </p>
                 </div>
-                <label className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold cursor-pointer transition-colors shadow-xs">
+                <label className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-neutral-950 text-xs font-bold cursor-pointer transition-colors shadow-xs whitespace-nowrap shrink-0">
                   <Upload className="w-3 h-3" />
-                  Replace
+                  <span>Replace</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -1028,7 +1208,7 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                 </label>
               </div>
 
-              <div className="relative w-full h-40 rounded-xl overflow-hidden border border-amber-500/30 shadow-md">
+              <div className="relative w-full h-40 rounded-xl overflow-hidden border border-white/15 shadow-md">
                 <img
                   src={config.scratchRevealPhoto}
                   alt="Scratch Reveal Keepsake"
@@ -1038,62 +1218,49 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
 
               <div className="space-y-2 pt-1">
                 <div>
-                  <label className="block text-[11px] font-cinzel font-bold text-amber-200 mb-1">
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
                     Keepsake Heading
                   </label>
                   <input
                     type="text"
                     value={config.scratchRevealHeading || ''}
-                    onChange={(e) =>
-                      onChange({ ...config, scratchRevealHeading: e.target.value })
-                    }
+                    onChange={(e) => onChange({ ...config, scratchRevealHeading: e.target.value })}
                     placeholder="e.g. 3D ROMANTIC VOW: PINNING THE BOUTONNIÈRE"
-                    className="w-full bg-[#08080C] border border-amber-500/30 focus:border-amber-400 rounded-xl px-3 py-1.5 text-xs text-amber-100 outline-none"
+                    className="w-full bg-[#0D0F14] border border-white/15 focus:border-[#A78BFA] rounded-xl px-3 py-1.5 text-xs text-white outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-cinzel font-bold text-amber-200 mb-1">
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
                     Keepsake Note
                   </label>
                   <textarea
                     rows={2}
                     value={config.scratchRevealNote || ''}
-                    onChange={(e) =>
-                      onChange({ ...config, scratchRevealNote: e.target.value })
-                    }
+                    onChange={(e) => onChange({ ...config, scratchRevealNote: e.target.value })}
                     placeholder="Romantic description revealed when guests scratch the foil"
-                    className="w-full bg-[#08080C] border border-amber-500/30 focus:border-amber-400 rounded-xl px-3 py-1.5 text-xs text-neutral-200 outline-none resize-none"
+                    className="w-full bg-[#0D0F14] border border-white/15 focus:border-[#A78BFA] rounded-xl px-3 py-1.5 text-xs text-white outline-none resize-none"
                   />
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const el = document.getElementById('scene-scratch-gatefold');
-                    if (el) el.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="w-full py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-[11px] font-cinzel font-bold text-amber-300 transition-colors flex items-center justify-center gap-1.5"
-                >
-                  <Sparkles className="w-3 h-3 text-amber-400" />
-                  Jump to Scratch &amp; Gatefold Section
-                </button>
               </div>
             </div>
 
             {/* 3D Gallery Photos */}
-            <div className="bg-[#121218] p-4 rounded-2xl border border-pink-500/25 shadow-sm space-y-3">
-              <div className="flex items-center justify-between border-b border-pink-500/20 pb-2">
+            <div className="bg-[#151822] p-4 rounded-2xl border border-white/10 shadow-sm space-y-3">
+              <div className="flex items-center justify-between border-b border-white/10 pb-2">
                 <div>
-                  <h3 className="font-classic text-sm font-bold text-pink-100 flex items-center gap-1.5">
-                    <ImageIcon className="w-4 h-4 text-pink-400" />
-                    3D Polaroid Gallery ({config.galleryPhotos.length} Photos)
+                  <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                    <ImageIcon className="w-4 h-4 text-[#C4B5FD]" />
+                    <span className="tabular-nums">
+                      3D Polaroid Gallery ({config.galleryPhotos.length} Photos)
+                    </span>
                   </h3>
-                  <p className="text-[11px] text-neutral-400">
-                    Interactive polaroid photos in the 3D gallery scene
+                  <p className="text-[11px] text-slate-400">
+                    Swipeable polaroid photos in the 3D gallery scene
                   </p>
                 </div>
-                <label className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-pink-600 hover:bg-pink-500 text-white text-xs font-semibold cursor-pointer transition-colors shadow-xs">
+                <label className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-semibold cursor-pointer transition-colors shadow-xs whitespace-nowrap shrink-0">
                   <Plus className="w-3 h-3" />
-                  Add Photo
+                  <span>Add Photo</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -1107,21 +1274,21 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                 {config.galleryPhotos.map((photo) => (
                   <div
                     key={photo.id}
-                    className="relative bg-[#0A0A0E] rounded-xl p-1.5 border border-pink-500/30 shadow-xs group overflow-hidden"
+                    className="relative bg-[#0D0F14] rounded-xl p-1.5 border border-white/12 shadow-xs group overflow-hidden"
                   >
                     <img
                       src={photo.url}
                       alt={photo.caption}
                       className="w-full h-24 object-cover rounded-lg"
                     />
-                    <p className="text-[10px] font-medium text-pink-100 truncate mt-1 px-0.5">
+                    <p className="text-[10px] font-medium text-slate-200 truncate mt-1 px-0.5">
                       {photo.caption}
                     </p>
                     <button
                       onClick={() => handleDeleteGalleryPhoto(photo.id)}
                       type="button"
                       aria-label="Delete photo"
-                      className="absolute top-2 right-2 p-1 rounded-full bg-rose-600 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                      className="absolute top-2 right-2 p-1 rounded-full bg-rose-600 text-white opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shadow-sm"
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
@@ -1129,161 +1296,59 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
                 ))}
               </div>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('pay')}
+              className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-md transition-colors"
+            >
+              <CreditCard className="w-4 h-4 text-[#E9D5FF]" />
+              <span>Next: Pay &amp; Unlock Share Link</span>
+              <ArrowRight className="w-4 h-4 text-[#E9D5FF]" />
+            </button>
           </div>
         )}
 
-        {/* STEP 5: 3D THEMES & PRESETS */}
-        {activeTab === 'presets' && (
-          <div className="space-y-4 animate-in fade-in duration-150">
-            <div className="bg-gradient-to-br from-[#200414] via-[#10010A] to-[#080005] p-4 rounded-2xl text-white border border-pink-500/40 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-cinzel text-xs font-bold text-pink-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-pink-400" />
-                    Cultural 3D Themes &amp; Foil Presets
-                  </h3>
-                  <p className="text-[11px] text-neutral-300 mt-0.5">
-                    One-click applies the complete visual theme, 3D foil card, and animations from start to end.
-                  </p>
-                </div>
-                {onOpen3DStudio && (
-                  <button
-                    type="button"
-                    onClick={onOpen3DStudio}
-                    className="px-2.5 py-1 rounded-lg bg-pink-500/20 hover:bg-pink-500/30 border border-pink-400/40 text-pink-200 text-xs font-cinzel font-bold shrink-0 transition-colors"
-                  >
-                    3D Studio ✨
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Presets List */}
-            <div className="space-y-3">
-              {WEDDING_PRESETS.map((preset) => {
-                const isActive =
-                  config.theme?.presetId === preset.id ||
-                  config.groomName.toLowerCase() === preset.groomName.toLowerCase();
-                return (
-                  <div
-                    key={preset.id}
-                    className={`p-3 rounded-2xl border transition-all ${
-                      isActive
-                        ? 'bg-pink-950/40 border-pink-500 ring-2 ring-pink-500/30 shadow-md'
-                        : 'bg-[#121218] border-pink-500/20 hover:border-pink-400 shadow-xs'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="relative w-16 h-22 rounded-xl overflow-hidden shrink-0 border border-pink-400/50 shadow-md">
-                        <img
-                          src={preset.coverImage}
-                          alt={preset.name}
-                          className="w-full h-full object-cover object-center"
-                        />
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <span className="inline-block text-[9px] font-cinzel font-bold px-2 py-0.5 rounded-full bg-pink-950/60 text-pink-300 border border-pink-500/30 uppercase tracking-wider">
-                            {preset.badge}
-                          </span>
-                          <span className="px-1.5 py-0.2 rounded text-[10px] font-bold font-sans bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                            ₹{preset.price}
-                          </span>
-                        </div>
-                        <h4 className="font-classic text-sm font-bold text-pink-100 leading-tight">
-                          {preset.name}
-                        </h4>
-                        <p className="text-[11px] text-pink-300/80 mt-0.5 line-clamp-1 italic">
-                          {preset.subtitle}
-                        </p>
-                        <p className="text-[10px] text-neutral-400 font-mono mt-0.5">
-                          {preset.culturalTheme} • {preset.venueCity}
-                        </p>
-
-                        <div className="mt-2.5 flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (onApplyPreset) {
-                                onApplyPreset(preset);
-                              }
-                            }}
-                            className={`flex-1 py-1.5 px-2.5 rounded-xl text-xs font-cinzel font-bold flex items-center justify-center gap-1 transition-all ${
-                              isActive
-                                ? 'bg-pink-600 text-white shadow-xs'
-                                : 'bg-[#1A0512] hover:bg-[#28081C] text-pink-200 border border-pink-500/40 active:scale-95'
-                            }`}
-                          >
-                            {isActive ? (
-                              <>
-                                <CheckCircle2 className="w-3.5 h-3.5 text-pink-300" />
-                                Active Theme
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="w-3.5 h-3.5 text-pink-300" />
-                                Apply Theme
-                              </>
-                            )}
-                          </button>
-
-                          {onOpenPayment && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (onApplyPreset) onApplyPreset(preset);
-                                onOpenPayment(preset.price);
-                              }}
-                              className="py-1.5 px-2.5 rounded-xl text-xs font-cinzel font-bold bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-neutral-950 flex items-center gap-1 shrink-0 shadow-sm transition-all active:scale-95"
-                              title={`Buy & Publish ${preset.name} (₹${preset.price})`}
-                            >
-                              <Sparkles className="w-3 h-3 text-neutral-950" />
-                              <span>Buy ₹{preset.price}</span>
-                            </button>
-                          )}
-
-                          {onOpen3DStudio && (
-                            <button
-                              type="button"
-                              onClick={onOpen3DStudio}
-                              className="py-1.5 px-2 rounded-xl bg-black/50 hover:bg-black/70 text-neutral-300 text-xs font-semibold border border-pink-500/20"
-                            >
-                              3D View
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+        {/* STEP 6: INTERACTIVE PAY & UNLOCK SHARE LINK */}
+        {activeTab === 'pay' && (
+          <PayUnlockSection
+            config={config}
+            onPaymentSuccess={onPaymentSuccess}
+            onJumpToStep={(step) => setActiveTab(step)}
+            onPreviewLive={handleTriggerViewWebsite}
+            stepCompletion={{
+              presets: Boolean(config.theme?.presetId),
+              couple: isCoupleFilled,
+              venue: isVenueFilled,
+              ceremonies: isEventsFilled,
+              photos: isPhotosFilled,
+            }}
+          />
         )}
       </div>
 
-      {/* SUCCESS CELEBRATION CALLOUT (Shown after generating website) */}
+      {/* Success Callout Banner */}
       {showSuccessBanner && (
-        <div className="mx-4 mb-2 p-3.5 rounded-2xl bg-gradient-to-r from-pink-950/60 via-rose-950/40 to-pink-950/60 border-2 border-pink-500/60 shadow-lg animate-in zoom-in-95 duration-200">
+        <div className="mx-4 mb-2 p-3.5 rounded-2xl bg-[#191D2A] border border-emerald-500/40 shadow-lg animate-in zoom-in-95 duration-200">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className="p-1 rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/40">
+              <span className="p-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
                 <Check className="w-4 h-4 stroke-[3]" />
               </span>
               <div>
-                <h4 className="font-cinzel text-xs font-bold text-pink-200 uppercase tracking-wide">
-                  🎉 Wedding Website Generated!
+                <h4 className="text-xs font-bold text-white uppercase tracking-wide">
+                  Wedding Website Generated
                 </h4>
-                <p className="text-[11px] text-neutral-300 font-medium">
-                  {config.groomName} &amp; {config.brideName}&apos;s 3D royal invitation is live.
+                <p className="text-[11px] text-slate-300 font-medium">
+                  {config.groomName} &amp; {config.brideName}&apos;s 3D invitation is ready.
                 </p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => setShowSuccessBanner(false)}
-              className="text-neutral-400 hover:text-pink-300 text-xs p-1"
+              className="text-slate-400 hover:text-white text-xs p-1"
+              aria-label="Dismiss banner"
             >
               ✕
             </button>
@@ -1293,72 +1358,74 @@ export const BuilderSidebar: React.FC<BuilderSidebarProps> = ({
             <button
               type="button"
               onClick={handleTriggerViewWebsite}
-              className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-pink-600 via-rose-600 to-pink-700 hover:opacity-95 text-white text-xs font-cinzel font-bold shadow-md flex items-center justify-center gap-1.5 transition-transform active:scale-95"
+              className="flex-1 min-h-[40px] py-2 px-3 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition-transform active:scale-95"
             >
-              <Eye className="w-4 h-4 text-pink-200" />
+              <Eye className="w-4 h-4 text-[#E9D5FF]" />
               <span>View Live Website</span>
-              <ArrowRight className="w-3.5 h-3.5 text-pink-200" />
+              <ArrowRight className="w-3.5 h-3.5 text-[#E9D5FF]" />
             </button>
           </div>
         </div>
       )}
 
-      {/* Prominent Action Footer: Generate & View Website */}
-      <div className="p-3.5 bg-[#0A0A0E] border-t-2 border-pink-500/30 shrink-0 space-y-2">
-        <div className="flex items-center justify-between text-[11px] text-neutral-400 px-1">
-          <span className="flex items-center gap-1 font-cinzel font-semibold text-pink-300">
-            <Sparkles className="w-3.5 h-3.5 text-pink-400" />
-            Invitation Status: {progressPercent}% Completed
+      {/* Action Footer */}
+      <div className="p-3.5 bg-[#11141C] border-t border-white/10 shrink-0 space-y-2">
+        <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
+          <span className="flex items-center gap-1 font-semibold text-slate-200">
+            <Sparkles className="w-3.5 h-3.5 text-[#C4B5FD]" />
+            <span className="tabular-nums">Status: {progressPercent}% Completed</span>
           </span>
-          <span className="text-pink-300/70 font-mono">
+          <span className="text-[#DDD6FE] font-medium truncate max-w-[160px]">
             {config.groomName} &amp; {config.brideName}
           </span>
         </div>
 
-        {onOpenPayment && (
+        {activeTab !== 'pay' && (
           <button
             type="button"
-            onClick={() => onOpenPayment(activePrice)}
-            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-amber-600 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-neutral-950 font-cinzel font-bold text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(245,158,11,0.35)] flex items-center justify-center gap-2 transition-all active:scale-98"
+            onClick={() => setActiveTab('pay')}
+            className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#9333EA] hover:from-[#6D28D9] hover:to-[#7E22CE] text-white font-bold text-xs tracking-wide shadow-lg flex items-center justify-center gap-2 transition-all active:scale-98 tabular-nums"
           >
-            <Sparkles className="w-4 h-4 text-neutral-950" />
-            <span>
-              {config.isUnlocked
-                ? 'VIP License Active • Upgrade or Re-Download'
-                : `Buy & Publish Website — ₹${activePrice.toLocaleString('en-IN')}`}
-            </span>
-            <span className="text-[10px] bg-black/20 text-neutral-950 font-sans font-extrabold px-1.5 py-0.5 rounded">
-              Razorpay Live
-            </span>
+            {config.isUnlocked ? (
+              <>
+                <Share2 className="w-4 h-4 text-[#E9D5FF] shrink-0" />
+                <span className="truncate">Step 6: Share Official Link &amp; Receipt</span>
+              </>
+            ) : (
+              <>
+                <Lock className="w-4 h-4 text-[#E9D5FF] shrink-0" />
+                <span className="truncate">
+                  Step 6: Pay ₹{activePrice.toLocaleString('en-IN')} &amp; Unlock Share Link
+                </span>
+              </>
+            )}
           </button>
         )}
 
         <div className="flex items-center gap-2">
-          {/* Main Generate Button */}
           <button
             id="generate-wedding-website-btn"
             type="button"
             onClick={handleGenerateWebsite}
-            className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-pink-600 via-rose-600 to-fuchsia-600 hover:from-pink-500 hover:to-fuchsia-500 text-white font-cinzel font-bold text-xs tracking-wider uppercase shadow-[0_0_20px_rgba(236,72,153,0.4)] flex items-center justify-center gap-2 transition-all transform active:scale-95 hover:shadow-xl border border-pink-300/40"
+            className="flex-1 min-h-[44px] py-2.5 px-4 rounded-xl bg-[#1A1F2D] hover:bg-[#232A3C] text-white font-bold text-xs tracking-wide shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 border border-white/12 whitespace-nowrap"
           >
-            <Sparkles className="w-4 h-4 text-pink-200 animate-pulse" />
-            <span>Generate 3D Wedding Website</span>
+            <Sparkles className="w-4 h-4 text-[#C4B5FD]" />
+            <span>Generate 3D Website</span>
           </button>
 
-          {/* View Website Button */}
           <button
             id="view-live-wedding-website-btn"
             type="button"
             onClick={handleTriggerViewWebsite}
-            className={`py-3 px-3.5 rounded-xl font-cinzel font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-95 border ${
+            className={`min-h-[44px] py-2.5 px-4 rounded-xl font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-95 border whitespace-nowrap shrink-0 ${
               isGenerated
-                ? 'bg-pink-600 hover:bg-pink-700 text-white border-pink-400/50 ring-2 ring-pink-400/30 animate-pulse'
-                : 'bg-[#14141C] hover:bg-[#1C1C26] text-pink-200 border-pink-500/30'
+                ? 'bg-[#7C3AED] hover:bg-[#6D28D9] text-white border-[#C4B5FD]/40'
+                : 'bg-[#151822] hover:bg-[#1E2332] text-slate-200 border-white/12'
             }`}
             title="View Live 3D Wedding Website"
           >
-            <Eye className="w-4 h-4 text-pink-400" />
-            <span className="hidden sm:inline">View</span>
+            <Eye className="w-4 h-4 text-[#C4B5FD]" />
+            <span>View</span>
           </button>
         </div>
       </div>
